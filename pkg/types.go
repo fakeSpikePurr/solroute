@@ -13,7 +13,7 @@ const (
 	PoolTypeRaydiumAMM  PoolType = "RaydiumAMM"
 	PoolTypeRaydiumCPMM PoolType = "RaydiumCPMM"
 	PoolTypeRaydiumCLMM PoolType = "RaydiumCLMM"
-	PoolTypeMeteoraCLMM PoolType = "MeteoraCLMM"
+	PoolTypePumpAMM     PoolType = "PumpAMM"
 )
 
 type PoolInfo struct {

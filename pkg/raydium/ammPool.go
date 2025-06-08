@@ -306,7 +306,7 @@ func (p *AMMPool) GetTokens() (baseMint, quoteMint string) {
 
 // GetType returns the pool type
 func (p *AMMPool) GetType() pkg.PoolType {
-	return pkg.PoolTypeCPMM
+	return pkg.PoolTypeRaydiumCPMM
 }
 
 // GetQuote returns the quote for a given input amount

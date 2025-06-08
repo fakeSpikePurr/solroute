@@ -98,7 +98,7 @@ func (l *PumpAMMPool) GetTokens() (string, string) {
 }
 
 func (l *PumpAMMPool) GetType() pkg.PoolType {
-	return pkg.PoolTypePump
+	return pkg.PoolTypePumpAMM
 }
 
 func (s *PumpAMMPool) BuildSwapInstructions(

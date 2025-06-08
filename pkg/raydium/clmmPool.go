@@ -438,7 +438,7 @@ func (p *CLMMPool) GetTokens() (baseMint, quoteMint string) {
 
 // GetType returns the pool type
 func (p *CLMMPool) GetType() pkg.PoolType {
-	return pkg.PoolTypeCLMM
+	return pkg.PoolTypeRaydiumCLMM
 }
 
 // GetQuote returns the quote for a given input amount
