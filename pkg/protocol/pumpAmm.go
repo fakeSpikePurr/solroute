@@ -8,9 +8,21 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingwow/solroute/pkg"
+	"github.com/yimingwow/solroute/pkg/pump"
+	"github.com/yimingwow/solroute/pkg/sol"
 )
 
-func (p *pkg.PumpAMMPool) GetPumpAmmPoolByTokenPair(ctx context.Context, baseMint string, quoteMint string) ([]pkg.Pool, error) {
+type PumpAmmProtocol struct {
+	SolClient *sol.Client
+}
+
+func NewPumpAmm(solClient *sol.Client) *PumpAmmProtocol {
+	return &PumpAmmProtocol{
+		SolClient: solClient,
+	}
+}
+
+func (p *PumpAmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint string, quoteMint string) ([]pkg.Pool, error) {
 	programAccounts := rpc.GetProgramAccountsResult{}
 	data, err := p.getPumpAMMPoolAccountsByTokenPair(ctx, baseMint, quoteMint)
 	if err != nil {
@@ -27,9 +39,8 @@ func (p *pkg.PumpAMMPool) GetPumpAmmPoolByTokenPair(ctx context.Context, baseMin
 
 	res := make([]pkg.Pool, 0)
 	for _, v := range programAccounts {
-		layout := parsePoolData(v.Account.Data.GetBinary())
+		layout := pump.ParsePoolData(v.Account.Data.GetBinary())
 		if layout == nil {
-			log.Printf("parsePoolData err: %v\n", err)
 			continue
 		}
 		layout.PoolId = v.Pubkey
@@ -38,15 +49,9 @@ func (p *pkg.PumpAMMPool) GetPumpAmmPoolByTokenPair(ctx context.Context, baseMin
 	return res, nil
 }
 
-func (p *pkg.PumpAMMPool) getPumpAMMPoolAccountsByTokenPair(ctx context.Context, baseMint string, quoteMint string) (rpc.GetProgramAccountsResult, error) {
-	_, err := p.GetPumpAmmPoolByPoolId(ctx, solana.MustPublicKeyFromBase58("EiDvJRs9nzkoiXDzE6gFsPAntEFvXmqzV7bT2QKbeog3"))
-	if err != nil {
-		log.Printf("GetPumpAmmPoolByPoolId err: %v\n", err)
-		return nil, err
-	}
-
-	var layout PumpAMMPool
-	return p.SolClient.RpcClient.GetProgramAccountsWithOpts(ctx, PumpSwapProgramID, &rpc.GetProgramAccountsOpts{
+func (p *PumpAmmProtocol) getPumpAMMPoolAccountsByTokenPair(ctx context.Context, baseMint string, quoteMint string) (rpc.GetProgramAccountsResult, error) {
+	var layout pump.PumpAMMPool
+	return p.SolClient.RpcClient.GetProgramAccountsWithOpts(ctx, pump.PumpSwapProgramID, &rpc.GetProgramAccountsOpts{
 		Filters: []rpc.RPCFilter{
 			{
 				DataSize: layout.Span(),
@@ -67,19 +72,17 @@ func (p *pkg.PumpAMMPool) getPumpAMMPoolAccountsByTokenPair(ctx context.Context,
 	})
 }
 
-func (p *PumpAMMPool) GetPumpAmmPoolByPoolId(ctx context.Context, poolId solana.PublicKey) (*PumpAMMPool, error) {
-
-	account, err := p.SolClient.RpcClient.GetAccountInfo(ctx, poolId)
+func (p *PumpAmmProtocol) FetchPoolByID(ctx context.Context, poolId string) (pkg.Pool, error) {
+	account, err := p.SolClient.RpcClient.GetAccountInfo(ctx, solana.MustPublicKeyFromBase58(poolId))
 	if err != nil {
-		log.Printf("GetAMMPool pool.ID: %s, err: %v\n", poolId.String(), err)
+		log.Printf("GetAMMPool pool.ID: %s, err: %v\n", poolId, err)
 		return nil, fmt.Errorf("failed to get pool account: %v", err)
 	}
 
-	layout := parsePoolData(account.Value.Data.GetBinary())
+	layout := pump.ParsePoolData(account.Value.Data.GetBinary())
 	if layout == nil {
-		log.Printf("parsePoolData err: %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to parse pool data")
 	}
-	layout.PoolId = poolId
+	layout.PoolId = solana.MustPublicKeyFromBase58(poolId)
 	return layout, nil
 }

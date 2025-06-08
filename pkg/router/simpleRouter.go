@@ -16,10 +16,10 @@ func NewSimpleRouter(protocols ...pkg.Protocol) *SimpleRouter {
 	return &SimpleRouter{protocols: protocols}
 }
 
-func (r *SimpleRouter) QueryAllPools(baseMint, quoteMint string) ([]pkg.Pool, error) {
+func (r *SimpleRouter) QueryAllPools(ctx context.Context, baseMint, quoteMint string) ([]pkg.Pool, error) {
 	var allPools []pkg.Pool
 	for _, proto := range r.protocols {
-		pools, err := proto.FetchPoolsByPair(baseMint, quoteMint)
+		pools, err := proto.FetchPoolsByPair(ctx, baseMint, quoteMint)
 		if err != nil {
 			continue
 		}
@@ -37,7 +37,7 @@ func (r *SimpleRouter) GetBestPool(
 	var maxOut math.Int
 
 	for _, p := range r.protocols {
-		pools, err := p.FetchPoolsByPair(tokenIn, tokenOut)
+		pools, err := p.FetchPoolsByPair(ctx, tokenIn, tokenOut)
 		if err != nil {
 			continue
 		}

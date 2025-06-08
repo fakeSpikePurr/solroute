@@ -24,7 +24,6 @@ type Pool interface {
 }
 
 type Protocol interface {
-	Name() string
-	FetchPoolsByPair(baseMint, quoteMint string) ([]Pool, error)
-	FetchPoolByID(poolID string) (Pool, error)
+	FetchPoolsByPair(ctx context.Context, baseMint, quoteMint string) ([]Pool, error)
+	FetchPoolByID(ctx context.Context, poolID string) (Pool, error)
 }

@@ -12,11 +12,6 @@ var (
 	PumpProtocolFeeRecipientTokenAccount = solana.MustPublicKeyFromBase58("94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb")
 )
 
-const (
-	PumpProtocol = "Pump"
-	// PumpAMMPool  = "pump_amm"
-)
-
 var (
 	BaseDecimalInt = 1000000000                   // 1*10^9
 	BaseDecimal    = math.NewIntWithDecimal(1, 9) // 1*10^9

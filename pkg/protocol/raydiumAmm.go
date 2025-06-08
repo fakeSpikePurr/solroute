@@ -81,10 +81,10 @@ func (p *RaydiumAMMProtocol) getAMMPoolAccountsByTokenPair(ctx context.Context, 
 }
 
 // FetchPoolByID fetches a specific pool by its ID
-func (r *RaydiumAMMProtocol) FetchPoolByID(ctx context.Context, poolID solana.PublicKey) (pkg.Pool, error) {
-	account, err := r.SolClient.RpcClient.GetAccountInfo(ctx, poolID)
+func (r *RaydiumAMMProtocol) FetchPoolByID(ctx context.Context, poolID string) (pkg.Pool, error) {
+	account, err := r.SolClient.RpcClient.GetAccountInfo(ctx, solana.MustPublicKeyFromBase58(poolID))
 	if err != nil {
-		log.Printf("GetAMMPool pool.ID: %s, err: %v\n", poolID.String(), err)
+		log.Printf("GetAMMPool pool.ID: %s, err: %v\n", poolID, err)
 		return nil, fmt.Errorf("failed to get pool account: %v", err)
 	}
 	layout := &raydium.AMMPool{}
@@ -92,7 +92,7 @@ func (r *RaydiumAMMProtocol) FetchPoolByID(ctx context.Context, poolID solana.Pu
 	if err != nil {
 		return nil, err
 	}
-	layout.PoolId = poolID
+	layout.PoolId = solana.MustPublicKeyFromBase58(poolID)
 	if err := r.processAMMPool(ctx, layout); err != nil {
 		return nil, err
 	}
