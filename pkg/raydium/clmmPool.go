@@ -289,11 +289,10 @@ func (s *CLMMPool) BuildSwapInstructions(
 	amountIn cosmath.Int,
 	minOutAmountWithDecimals cosmath.Int,
 	inputMint string,
-) ([]solana.Instruction, []solana.PrivateKey, error) {
+) ([]solana.Instruction, error) {
 
 	// 初始化指令数组和签名者
 	instrs := []solana.Instruction{}
-	signers := []solana.PrivateKey{}
 
 	var inputValueMint solana.PublicKey
 	var outputValueMint solana.PublicKey
@@ -354,7 +353,7 @@ func (s *CLMMPool) BuildSwapInstructions(
 	exBitmapAddress, _, err := GetPdaExBitmapAccount(RAYDIUM_CLMM_PROGRAM_ID, pool.PoolId)
 	if err != nil {
 		log.Printf("get pda address error: %v", err)
-		return nil, nil, fmt.Errorf("get pda address error: %v", err)
+		return nil, fmt.Errorf("get pda address error: %v", err)
 	}
 	inst.AccountMetaSlice = append(inst.AccountMetaSlice, solana.NewAccountMeta(exBitmapAddress, true, false)) // exTickArrayBitmap (is_writable = true, is_signer = false)
 
@@ -362,7 +361,7 @@ func (s *CLMMPool) BuildSwapInstructions(
 	remainingAccounts, err := pool.GetRemainAccounts(ctx, solClient, inputValueMint.String())
 	if err != nil {
 		log.Printf("GetRemainAccounts error: %v", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	for _, tickArray := range remainingAccounts {
@@ -370,7 +369,7 @@ func (s *CLMMPool) BuildSwapInstructions(
 	}
 	instrs = append(instrs, &inst)
 
-	return instrs, signers, nil
+	return instrs, nil
 }
 
 type RayCLMMSwapInstruction struct {

@@ -354,10 +354,9 @@ func (pool *AMMPool) BuildSwapInstructions(
 	inputMint string,
 	inputAmount cosmath.Int,
 	minOut cosmath.Int,
-) ([]solana.Instruction, []solana.PrivateKey, error) {
+) ([]solana.Instruction, error) {
 
 	instrs := []solana.Instruction{}
-	signers := []solana.PrivateKey{}
 
 	var inputValueMint solana.PublicKey
 	if inputMint == pool.BaseMint.String() {
@@ -407,7 +406,7 @@ func (pool *AMMPool) BuildSwapInstructions(
 	inst.AccountMetaSlice[17] = solana.NewAccountMeta(user, true, true)
 	instrs = append(instrs, &inst)
 
-	return instrs, signers, nil
+	return instrs, nil
 }
 
 type InSwapInstruction struct {

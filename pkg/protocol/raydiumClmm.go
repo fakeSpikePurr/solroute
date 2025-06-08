@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingwow/solroute/pkg/raydium"
@@ -122,10 +123,33 @@ func (r *RaydiumClmmProtocol) GetCLMMPoolByPoolId(ctx context.Context, poolId so
 
 func parseAmmConfig(data []byte) (uint32, error) {
 	// 解析池数据获取价格
-	var ammConfig raydium.AmmConfig
+	var ammConfig AmmConfig
 	err := ammConfig.Decode(data)
 	if err != nil {
 		return 0, fmt.Errorf("failed to decode amm config: %w", err)
 	}
 	return ammConfig.TradeFeeRate, nil
+}
+
+type AmmConfig struct {
+	Bump            uint8
+	Index           uint16
+	Owner           solana.PublicKey
+	ProtocolFeeRate uint32
+	TradeFeeRate    uint32
+	TickSpacing     uint16
+	FundFeeRate     uint32
+	PaddingU32      uint32
+	FundOwner       solana.PublicKey
+	Padding         [3]uint64
+}
+
+func (l *AmmConfig) Decode(data []byte) error {
+	// Skip 8 bytes discriminator if present
+	if len(data) > 8 {
+		data = data[8:]
+	}
+
+	dec := bin.NewBinDecoder(data)
+	return dec.Decode(l)
 }

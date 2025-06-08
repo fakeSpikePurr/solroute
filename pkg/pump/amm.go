@@ -108,7 +108,7 @@ func (s *PumpAMMPool) BuildSwapInstructions(
 	inputMint string,
 	inputAmount math.Int,
 	minOut math.Int,
-) ([]solana.Instruction, []solana.PrivateKey, error) {
+) ([]solana.Instruction, error) {
 	if inputMint == s.BaseMint.String() {
 		return s.buyInAMMPool(ctx, user, s, inputAmount, minOut)
 	} else {
@@ -117,10 +117,9 @@ func (s *PumpAMMPool) BuildSwapInstructions(
 }
 
 func (s *PumpAMMPool) buyInAMMPool(ctx context.Context, userAddr solana.PublicKey, pool *PumpAMMPool,
-	maxInputAmountWithDecimals math.Int, outAmountWithDecimals math.Int) ([]solana.Instruction, []solana.PrivateKey, error) {
+	maxInputAmountWithDecimals math.Int, outAmountWithDecimals math.Int) ([]solana.Instruction, error) {
 	// 初始化指令数组和签名者
 	instrs := []solana.Instruction{}
-	signers := []solana.PrivateKey{}
 
 	inst := BuySwapInstruction{
 		BaseAmountOut:    outAmountWithDecimals.Uint64(),
@@ -160,13 +159,12 @@ func (s *PumpAMMPool) buyInAMMPool(ctx context.Context, userAddr solana.PublicKe
 	}
 	instrs = append(instrs, &inst)
 
-	return instrs, signers, nil
+	return instrs, nil
 }
 
 func (s *PumpAMMPool) sellInAMMPool(ctx context.Context, userAddr solana.PublicKey,
-	pool *PumpAMMPool, baseAmountIn math.Int, minQuoteAmountOut math.Int) ([]solana.Instruction, []solana.PrivateKey, error) {
+	pool *PumpAMMPool, baseAmountIn math.Int, minQuoteAmountOut math.Int) ([]solana.Instruction, error) {
 	instrs := []solana.Instruction{}
-	signers := []solana.PrivateKey{}
 
 	inst := SellSwapInstruction{
 		BaseAmountIn:      baseAmountIn.Uint64(),
@@ -205,7 +203,7 @@ func (s *PumpAMMPool) sellInAMMPool(ctx context.Context, userAddr solana.PublicK
 	}
 	instrs = append(instrs, &inst)
 
-	return instrs, signers, nil
+	return instrs, nil
 }
 
 type BuySwapInstruction struct {

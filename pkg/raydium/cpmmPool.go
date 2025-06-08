@@ -83,11 +83,10 @@ func (r *CPMMPool) BuildSwapInstructions(
 	amountIn math.Int,
 	minOutAmountWithDecimals math.Int,
 	inputMint string,
-) ([]solana.Instruction, []solana.PrivateKey, error) {
+) ([]solana.Instruction, error) {
 
-	// 初始化指令数组和签名者
+	// 初始化指令数组
 	instrs := []solana.Instruction{}
-	signers := []solana.PrivateKey{}
 
 	var inputValueMint solana.PublicKey
 	if inputMint == pool.Token0Mint.String() {
@@ -119,7 +118,7 @@ func (r *CPMMPool) BuildSwapInstructions(
 	// Get the authority PDA
 	authority, _, err := getAuthorityPDA()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get authority PDA: %v", err)
+		return nil, fmt.Errorf("failed to get authority PDA: %v", err)
 	}
 	// 设置账户
 	swapInst.AccountMetaSlice[0] = solana.NewAccountMeta(userAddr, true, true)                // payer
@@ -137,7 +136,7 @@ func (r *CPMMPool) BuildSwapInstructions(
 	swapInst.AccountMetaSlice[12] = solana.NewAccountMeta(pool.ObservationKey, true, false)   // observation_state
 	instrs = append(instrs, &swapInst)
 
-	return instrs, signers, nil
+	return instrs, nil
 }
 
 // CPMMSwapInstruction represents the data for a CPMM swap instruction

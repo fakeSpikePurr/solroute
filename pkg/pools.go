@@ -20,7 +20,7 @@ type Pool interface {
 		inputMint string,
 		inputAmount math.Int,
 		minOut math.Int,
-	) ([]solana.Instruction, []solana.PrivateKey, error)
+	) ([]solana.Instruction, error)
 }
 
 type Protocol interface {

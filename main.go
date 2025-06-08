@@ -23,7 +23,10 @@ func main() {
 		protocol.NewRaydiumAmm(solClient),
 	)
 
-	pools, err := router.QueryAllPools(ctx, "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "So11111111111111111111111111111111111111112")
+	tokenA := "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" // usdc
+	tokenB := sol.WSOL.String()
+
+	pools, err := router.QueryAllPools(ctx, tokenA, tokenB)
 	if err != nil {
 		log.Fatalf("Failed to query all pools: %v", err)
 	}
@@ -31,7 +34,7 @@ func main() {
 		log.Printf("Pool: %v", pool.GetID())
 	}
 
-	bestPool, amountOut, err := router.GetBestPool(ctx, "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "So11111111111111111111111111111111111111112", math.NewInt(1000000000))
+	bestPool, amountOut, err := router.GetBestPool(ctx, tokenA, tokenB, math.NewInt(1000000000))
 	if err != nil {
 		log.Fatalf("Failed to get best pool: %v", err)
 	}
@@ -39,11 +42,10 @@ func main() {
 	log.Printf("Amount out: %v", amountOut)
 
 	user := solana.MustPublicKeyFromBase58("568998654321")
-	instructions, signers, err := bestPool.BuildSwapInstructions(ctx, solClient.RpcClient,
-		user, "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", math.NewInt(1000000000), math.NewInt(0))
+	instructions, err := bestPool.BuildSwapInstructions(ctx, solClient.RpcClient,
+		user, tokenA, math.NewInt(1000000000), math.NewInt(0))
 	if err != nil {
 		log.Fatalf("Failed to build swap instructions: %v", err)
 	}
 	log.Printf("Instructions: %v", instructions)
-	log.Printf("Signers: %v", signers)
 }
