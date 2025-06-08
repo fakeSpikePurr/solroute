@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
@@ -29,28 +28,24 @@ func (p *RaydiumAMMProtocol) FetchPoolsByPair(ctx context.Context, baseMint, quo
 	accounts := make([]*rpc.KeyedAccount, 0)
 	programAccounts, err := p.getAMMPoolAccountsByTokenPair(ctx, baseMint, quoteMint)
 	if err != nil {
-		log.Printf("GetPoolKeys programAccounts err: %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", baseMint, err)
 	}
 	accounts = append(accounts, programAccounts...)
 	programAccounts, err = p.getAMMPoolAccountsByTokenPair(ctx, quoteMint, baseMint)
 	if err != nil {
-		log.Printf("GetPoolKeys programAccounts err: %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", quoteMint, err)
 	}
 	accounts = append(accounts, programAccounts...)
 
 	res := make([]pkg.Pool, 0)
 	for _, v := range accounts {
 		layout := &raydium.AMMPool{}
-		err := layout.Decode(v.Account.Data.GetBinary())
-		if err != nil {
-			log.Printf("account2AMMPool err: %v\n", err)
+		if err := layout.Decode(v.Account.Data.GetBinary()); err != nil {
 			continue
 		}
 		layout.PoolId = v.Pubkey
 		if err := p.processAMMPool(ctx, layout); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to process AMM pool %s: %w", v.Pubkey.String(), err)
 		}
 		res = append(res, layout)
 	}
@@ -59,6 +54,15 @@ func (p *RaydiumAMMProtocol) FetchPoolsByPair(ctx context.Context, baseMint, quo
 
 func (p *RaydiumAMMProtocol) getAMMPoolAccountsByTokenPair(ctx context.Context, baseMint string, quoteMint string) (rpc.GetProgramAccountsResult, error) {
 	var layout raydium.AMMPool
+	baseMintPubkey, err := solana.PublicKeyFromBase58(baseMint)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base mint address: %w", err)
+	}
+	quoteMintPubkey, err := solana.PublicKeyFromBase58(quoteMint)
+	if err != nil {
+		return nil, fmt.Errorf("invalid quote mint address: %w", err)
+	}
+
 	return p.SolClient.RpcClient.GetProgramAccountsWithOpts(ctx, raydium.RAYDIUM_AMM_PROGRAM_ID, &rpc.GetProgramAccountsOpts{
 		Filters: []rpc.RPCFilter{
 			{
@@ -67,13 +71,13 @@ func (p *RaydiumAMMProtocol) getAMMPoolAccountsByTokenPair(ctx context.Context, 
 			{
 				Memcmp: &rpc.RPCFilterMemcmp{
 					Offset: layout.Offset("BaseMint"),
-					Bytes:  solana.MustPublicKeyFromBase58(baseMint).Bytes(),
+					Bytes:  baseMintPubkey.Bytes(),
 				},
 			},
 			{
 				Memcmp: &rpc.RPCFilterMemcmp{
 					Offset: layout.Offset("QuoteMint"),
-					Bytes:  solana.MustPublicKeyFromBase58(quoteMint).Bytes(),
+					Bytes:  quoteMintPubkey.Bytes(),
 				},
 			},
 		},
@@ -82,19 +86,23 @@ func (p *RaydiumAMMProtocol) getAMMPoolAccountsByTokenPair(ctx context.Context, 
 
 // FetchPoolByID fetches a specific pool by its ID
 func (r *RaydiumAMMProtocol) FetchPoolByID(ctx context.Context, poolID string) (pkg.Pool, error) {
-	account, err := r.SolClient.RpcClient.GetAccountInfo(ctx, solana.MustPublicKeyFromBase58(poolID))
+	poolPubkey, err := solana.PublicKeyFromBase58(poolID)
 	if err != nil {
-		log.Printf("GetAMMPool pool.ID: %s, err: %v\n", poolID, err)
-		return nil, fmt.Errorf("failed to get pool account: %v", err)
+		return nil, fmt.Errorf("invalid pool ID: %w", err)
 	}
+
+	account, err := r.SolClient.RpcClient.GetAccountInfo(ctx, poolPubkey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pool account %s: %w", poolID, err)
+	}
+
 	layout := &raydium.AMMPool{}
-	err = layout.Decode(account.Value.Data.GetBinary())
-	if err != nil {
-		return nil, err
+	if err := layout.Decode(account.Value.Data.GetBinary()); err != nil {
+		return nil, fmt.Errorf("failed to decode pool data for %s: %w", poolID, err)
 	}
-	layout.PoolId = solana.MustPublicKeyFromBase58(poolID)
+	layout.PoolId = poolPubkey
 	if err := r.processAMMPool(ctx, layout); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to process AMM pool %s: %w", poolID, err)
 	}
 	return layout, nil
 }
@@ -105,7 +113,7 @@ func getAssociatedAuthority(programID solana.PublicKey, marketID solana.PublicKe
 
 	for nonce < 100 {
 		seedsWithNonce := append(seeds, int8ToBuf(nonce))
-		seedsWithNonce = append(seedsWithNonce, make([]byte, 7)) // Buffer.alloc(7)
+		seedsWithNonce = append(seedsWithNonce, make([]byte, 7))
 
 		publicKey, err := solana.CreateProgramAddress(seedsWithNonce, programID)
 		if err != nil {
@@ -128,19 +136,24 @@ func int8ToBuf(value uint8) []byte {
 func (p *RaydiumAMMProtocol) processAMMPool(ctx context.Context, layout *raydium.AMMPool) error {
 	marketAccount, err := p.SolClient.RpcClient.GetAccountInfo(ctx, layout.MarketId)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get market account: %w", err)
 	}
 
 	var marketLayout raydium.MarketStateLayoutV3
-	marketLayout.Decode(marketAccount.Value.Data.GetBinary())
+	if err := marketLayout.Decode(marketAccount.Value.Data.GetBinary()); err != nil {
+		return fmt.Errorf("failed to decode market layout: %w", err)
+	}
+
 	authority, _, err := solana.FindProgramAddress([][]byte{{97, 109, 109, 32, 97, 117, 116, 104, 111, 114, 105, 116, 121}}, raydium.RAYDIUM_AMM_PROGRAM_ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to find program address: %w", err)
 	}
+
 	marketAuthority, _, err := getAssociatedAuthority(marketAccount.Value.Owner, marketLayout.OwnAddress)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get associated authority: %w", err)
 	}
+
 	layout.Authority = authority
 	layout.MarketAuthority = marketAuthority
 	return nil

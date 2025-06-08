@@ -3,7 +3,6 @@ package protocol
 import (
 	"context"
 	"fmt"
-	"log"
 
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
@@ -26,14 +25,12 @@ func (p *RaydiumClmmProtocol) GetCLMMPoolByPair(ctx context.Context, baseMint st
 	accounts := make([]*rpc.KeyedAccount, 0)
 	programAccounts, err := p.getCLMMPoolAccountsByTokenPair(ctx, baseMint, quoteMint)
 	if err != nil {
-		log.Printf("getCLMMPoolAccountsByTokenPair err: %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", baseMint, err)
 	}
 	accounts = append(accounts, programAccounts...)
 	programAccounts, err = p.getCLMMPoolAccountsByTokenPair(ctx, quoteMint, baseMint)
 	if err != nil {
-		log.Printf("getCLMMPoolAccountsByTokenPair err: %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", quoteMint, err)
 	}
 	accounts = append(accounts, programAccounts...)
 
@@ -41,27 +38,23 @@ func (p *RaydiumClmmProtocol) GetCLMMPoolByPair(ctx context.Context, baseMint st
 	for _, v := range accounts {
 		data := v.Account.Data.GetBinary()
 		layout := &raydium.CLMMPool{}
-		err := layout.Decode(data)
-		if err != nil {
-			log.Printf("decode CLMMPool err: %v\n", err)
+		if err := layout.Decode(data); err != nil {
 			continue
 		}
 		layout.PoolId = v.Pubkey
 
 		ammConfigData, err := p.SolClient.RpcClient.GetAccountInfo(ctx, layout.AmmConfig)
 		if err != nil {
-			log.Printf("Failed to get amm config: %v", err)
 			continue
 		}
 		feeRate, err := parseAmmConfig(ammConfigData.Value.Data.GetBinary())
 		if err != nil {
-			log.Printf("parseAmmConfig: %v", err)
 			continue
 		}
 		layout.FeeRate = feeRate
+
 		exBitmapAddress, _, err := raydium.GetPdaExBitmapAccount(raydium.RAYDIUM_CLMM_PROGRAM_ID, layout.PoolId)
 		if err != nil {
-			log.Printf("get pda address error: %v", err)
 			continue
 		}
 		layout.ExBitmapAddress = exBitmapAddress
@@ -72,16 +65,20 @@ func (p *RaydiumClmmProtocol) GetCLMMPoolByPair(ctx context.Context, baseMint st
 }
 
 func (p *RaydiumClmmProtocol) getCLMMPoolAccountsByTokenPair(ctx context.Context, baseMint string, quoteMint string) (rpc.GetProgramAccountsResult, error) {
+	baseKey, err := solana.PublicKeyFromBase58(baseMint)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base mint address: %w", err)
+	}
+	quoteKey, err := solana.PublicKeyFromBase58(quoteMint)
+	if err != nil {
+		return nil, fmt.Errorf("invalid quote mint address: %w", err)
+	}
 
-	baseKey := solana.MustPublicKeyFromBase58(baseMint)
-	quoteKey := solana.MustPublicKeyFromBase58(quoteMint)
-
-	// Now try with filters
 	var knownPoolLayout raydium.CLMMPool
 	result, err := p.SolClient.RpcClient.GetProgramAccountsWithOpts(ctx, raydium.RAYDIUM_CLMM_PROGRAM_ID, &rpc.GetProgramAccountsOpts{
 		Filters: []rpc.RPCFilter{
 			{
-				DataSize: uint64(knownPoolLayout.Span()), // Use actual size from known pool
+				DataSize: uint64(knownPoolLayout.Span()),
 			},
 			{
 				Memcmp: &rpc.RPCFilterMemcmp{
@@ -98,34 +95,29 @@ func (p *RaydiumClmmProtocol) getCLMMPoolAccountsByTokenPair(ctx context.Context
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pools: %v", err)
+		return nil, fmt.Errorf("failed to get pools: %w", err)
 	}
 
 	return result, nil
 }
 
-// GetCLMMPoolByPoolId 获取并解析池子信息
 func (r *RaydiumClmmProtocol) GetCLMMPoolByPoolId(ctx context.Context, poolId solana.PublicKey) (*raydium.CLMMPool, error) {
 	account, err := r.SolClient.RpcClient.GetAccountInfo(ctx, poolId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pool account: %v", err)
+		return nil, fmt.Errorf("failed to get pool account %s: %w", poolId.String(), err)
 	}
 
 	data := account.Value.Data.GetBinary()
 	layout := &raydium.CLMMPool{}
-	err = layout.Decode(data)
-	if err != nil {
-		log.Printf("GetAMMPool pool.ID: %s, err: %v\n", poolId.String(), err)
-		return nil, fmt.Errorf("failed to decode pool info: %v", err)
+	if err := layout.Decode(data); err != nil {
+		return nil, fmt.Errorf("failed to decode pool data for %s: %w", poolId.String(), err)
 	}
 	return layout, nil
 }
 
 func parseAmmConfig(data []byte) (uint32, error) {
-	// 解析池数据获取价格
 	var ammConfig AmmConfig
-	err := ammConfig.Decode(data)
-	if err != nil {
+	if err := ammConfig.Decode(data); err != nil {
 		return 0, fmt.Errorf("failed to decode amm config: %w", err)
 	}
 	return ammConfig.TradeFeeRate, nil

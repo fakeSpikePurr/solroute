@@ -372,6 +372,7 @@ func (s *CLMMPool) BuildSwapInstructions(
 	return instrs, nil
 }
 
+// RayCLMMSwapInstruction represents a swap instruction for the Raydium CLMM pool
 type RayCLMMSwapInstruction struct {
 	bin.BaseVariant
 	Amount                  uint64
@@ -381,16 +382,18 @@ type RayCLMMSwapInstruction struct {
 	solana.AccountMetaSlice `bin:"-" borsh_skip:"true"`
 }
 
+// ProgramID returns the program ID for the Raydium CLMM program
 func (inst *RayCLMMSwapInstruction) ProgramID() solana.PublicKey {
 	return RAYDIUM_CLMM_PROGRAM_ID
 }
 
+// Accounts returns the account metas for the instruction
 func (inst *RayCLMMSwapInstruction) Accounts() (out []*solana.AccountMeta) {
 	return inst.AccountMetaSlice
 }
 
+// Data serializes the instruction data
 func (inst *RayCLMMSwapInstruction) Data() ([]byte, error) {
-	// 手动构建指令数据
 	buf := new(bytes.Buffer)
 
 	// Write discriminator for swap instruction
@@ -426,52 +429,54 @@ func (inst *RayCLMMSwapInstruction) Data() ([]byte, error) {
 }
 
 // GetID returns the pool ID
-func (p *CLMMPool) GetID() string {
-	return p.PoolId.String()
+func (pool *CLMMPool) GetID() string {
+	return pool.PoolId.String()
 }
 
 // GetTokens returns the base and quote token mints
-func (p *CLMMPool) GetTokens() (baseMint, quoteMint string) {
-	return p.TokenMint0.String(), p.TokenMint1.String()
+func (pool *CLMMPool) GetTokens() (baseMint, quoteMint string) {
+	return pool.TokenMint0.String(), pool.TokenMint1.String()
 }
 
 // GetType returns the pool type
-func (p *CLMMPool) GetType() pkg.PoolType {
+func (pool *CLMMPool) GetType() pkg.PoolType {
 	return pkg.PoolTypeRaydiumCLMM
 }
 
-// GetQuote returns the quote for a given input amount
-func (p *CLMMPool) GetQuote(ctx context.Context, inputMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
+// GetQuote calculates the expected output amount for a given input amount
+func (pool *CLMMPool) GetQuote(ctx context.Context, inputMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
 	// TODO: Implement quote calculation based on pool state
 	// This would involve calculating the expected output amount based on the pool's reserves
 	// and the input amount, taking into account fees and slippage
 	return cosmath.ZeroInt(), nil
 }
 
-func (p *CLMMPool) ComputeAmountOutFormat(inputTokenMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
+// ComputeAmountOutFormat calculates the expected output amount for a given input amount
+func (pool *CLMMPool) ComputeAmountOutFormat(inputTokenMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
+	zeroForOne := inputTokenMint == pool.TokenMint0.String()
 
-	zeroForOne := inputTokenMint == p.TokenMint0.String()
-
-	firstTickArrayStartIndex, _, err := p.getFirstInitializedTickArray(zeroForOne, p.exTickArrayBitmap)
+	firstTickArrayStartIndex, _, err := pool.getFirstInitializedTickArray(zeroForOne, pool.exTickArrayBitmap)
 	if err != nil {
-		return cosmath.Int{}, err
+		return cosmath.Int{}, fmt.Errorf("failed to get first initialized tick array: %w", err)
 	}
-	expectedAmountOut, err := p.swapCompute(
-		int64(p.TickCurrent),
+
+	expectedAmountOut, err := pool.swapCompute(
+		int64(pool.TickCurrent),
 		zeroForOne,
 		inputAmount,
-		cosmath.NewIntFromUint64(uint64(p.FeeRate)),
+		cosmath.NewIntFromUint64(uint64(pool.FeeRate)),
 		firstTickArrayStartIndex,
-		p.exTickArrayBitmap,
+		pool.exTickArrayBitmap,
 	)
 	if err != nil {
-		return cosmath.Int{}, err
+		return cosmath.Int{}, fmt.Errorf("failed to compute swap amount: %w", err)
 	}
 
 	return expectedAmountOut, nil
 }
 
-func (p *CLMMPool) swapCompute(
+// swapCompute performs the core swap calculation logic
+func (pool *CLMMPool) swapCompute(
 	currentTick int64,
 	zeroForOne bool,
 	amountSpecified cosmath.Int,
@@ -480,27 +485,25 @@ func (p *CLMMPool) swapCompute(
 	exTickArrayBitmap *TickArrayBitmapExtensionType,
 ) (cosmath.Int, error) {
 	if amountSpecified.IsZero() {
-		return cosmath.Int{}, errors.New("input amount is zero")
+		return cosmath.Int{}, errors.New("input amount cannot be zero")
 	}
 
-	baseInput := false
-	if amountSpecified.IsPositive() {
-		baseInput = true
-	}
-
+	baseInput := amountSpecified.IsPositive()
 	sqrtPriceLimitX64 := cosmath.NewInt(0)
 
+	// Initialize calculation variables
 	amountSpecifiedRemaining := amountSpecified
 	amountCalculated := cosmath.NewInt(0)
 	amountIn := cosmath.NewInt(0)
 	amountOut := cosmath.NewInt(0)
 	feeAmount := cosmath.NewInt(0)
-	sqrtPriceX64 := cosmath.NewIntFromBigInt(p.SqrtPriceX64.Big())
+	sqrtPriceX64 := cosmath.NewIntFromBigInt(pool.SqrtPriceX64.Big())
 	tick := int64(0)
 
+	// Calculate initial tick
 	if currentTick > lastSavedTickArrayStartIndex {
-		if lastSavedTickArrayStartIndex+getTickCount(int64(p.TickSpacing))-1 < currentTick {
-			tick = lastSavedTickArrayStartIndex + getTickCount(int64(p.TickSpacing)) - 1
+		if lastSavedTickArrayStartIndex+getTickCount(int64(pool.TickSpacing))-1 < currentTick {
+			tick = lastSavedTickArrayStartIndex + getTickCount(int64(pool.TickSpacing)) - 1
 		} else {
 			tick = currentTick
 		}
@@ -508,11 +511,13 @@ func (p *CLMMPool) swapCompute(
 		tick = lastSavedTickArrayStartIndex
 	}
 
+	// Initialize accounts and liquidity
 	accounts := make([]*solana.PublicKey, 0)
-	liquidity := cosmath.NewIntFromBigInt(p.Liquidity.Big())
+	liquidity := cosmath.NewIntFromBigInt(pool.Liquidity.Big())
 	tickAarrayStartIndex := lastSavedTickArrayStartIndex
-	tickArrayCurrent := p.TickArrayCache[strconv.FormatInt(lastSavedTickArrayStartIndex, 10)]
+	tickArrayCurrent := pool.TickArrayCache[strconv.FormatInt(lastSavedTickArrayStartIndex, 10)]
 
+	// Set price limits based on direction
 	if baseInput {
 		sqrtPriceLimitX64 = MIN_SQRT_PRICE_X64.Add(cosmath.NewInt(1))
 	} else {
@@ -520,6 +525,7 @@ func (p *CLMMPool) swapCompute(
 	}
 	t := !zeroForOne && int64(tickArrayCurrent.StartTickIndex) == tick
 
+	// Main swap calculation loop
 	loop := 0
 	for {
 		if amountSpecifiedRemaining.IsZero() || sqrtPriceX64.Equal(sqrtPriceLimitX64) {
@@ -527,32 +533,39 @@ func (p *CLMMPool) swapCompute(
 		}
 
 		sqrtPriceStartX64 := sqrtPriceX64
-		tickState := getNextInitTick(&tickArrayCurrent, tick, int64(p.TickSpacing), zeroForOne, t)
+		tickState := getNextInitTick(&tickArrayCurrent, tick, int64(pool.TickSpacing), zeroForOne, t)
 
 		nextInitTick := tickState
 		tickArrayAddress := &solana.PublicKey{}
 
+		// Handle liquidity crossing
 		if nextInitTick == nil || nextInitTick.LiquidityGross.Big().Cmp(big.NewInt(0)) <= 0 {
-			isExist, nextInitTickArrayIndex, err := nextInitializedTickArrayStartIndexUtils(exTickArrayBitmap,
-				tick, int64(p.TickSpacing), p.TickArrayBitmap, zeroForOne)
+			isExist, nextInitTickArrayIndex, err := nextInitializedTickArrayStartIndexUtils(
+				exTickArrayBitmap,
+				tick,
+				int64(pool.TickSpacing),
+				pool.TickArrayBitmap,
+				zeroForOne,
+			)
 			if err != nil {
-				return cosmath.Int{}, err
+				return cosmath.Int{}, fmt.Errorf("failed to get next initialized tick array: %w", err)
 			}
 			if !isExist {
-				return cosmath.Int{}, errors.New("liquidity insufficient")
+				return cosmath.Int{}, errors.New("insufficient liquidity")
 			}
 
 			tickAarrayStartIndex := nextInitTickArrayIndex
-			expectedNextTickArrayAddress := getPdaTickArrayAddress(RAYDIUM_CLMM_PROGRAM_ID, p.PoolId, tickAarrayStartIndex)
+			expectedNextTickArrayAddress := getPdaTickArrayAddress(RAYDIUM_CLMM_PROGRAM_ID, pool.PoolId, tickAarrayStartIndex)
 
 			tickArrayAddress = &expectedNextTickArrayAddress
-			tickArrayCurrent = p.TickArrayCache[strconv.FormatInt(tickAarrayStartIndex, 10)]
+			tickArrayCurrent = pool.TickArrayCache[strconv.FormatInt(tickAarrayStartIndex, 10)]
 			nextInitTick, err = firstInitializedTick(&tickArrayCurrent, zeroForOne)
 			if err != nil {
-				return cosmath.Int{}, err
+				return cosmath.Int{}, fmt.Errorf("failed to get first initialized tick: %w", err)
 			}
 		}
 
+		// Calculate next tick and price
 		tickNext := int64(nextInitTick.Tick)
 		initialized := nextInitTick.LiquidityGross.Big().Cmp(big.NewInt(0)) > 0
 		if lastSavedTickArrayStartIndex != tickAarrayStartIndex && tickArrayAddress != nil {
@@ -560,6 +573,7 @@ func (p *CLMMPool) swapCompute(
 			lastSavedTickArrayStartIndex = tickAarrayStartIndex
 		}
 
+		// Clamp tick to valid range
 		if tickNext < MIN_TICK {
 			tickNext = MIN_TICK
 		} else if tickNext > MAX_TICK {
@@ -568,9 +582,10 @@ func (p *CLMMPool) swapCompute(
 
 		sqrtPriceNextX64, err := getSqrtPriceX64FromTick(int64(tickNext))
 		if err != nil {
-			return cosmath.Int{}, err
+			return cosmath.Int{}, fmt.Errorf("failed to get sqrt price from tick: %w", err)
 		}
 
+		// Calculate target price
 		targetPrice := cosmath.NewInt(0)
 		if (zeroForOne && sqrtPriceNextX64.LT(sqrtPriceLimitX64)) ||
 			(!zeroForOne && sqrtPriceNextX64.GT(sqrtPriceLimitX64)) {
@@ -579,6 +594,7 @@ func (p *CLMMPool) swapCompute(
 			targetPrice = sqrtPriceNextX64
 		}
 
+		// Calculate swap step
 		sqrtPriceX64, amountIn, amountOut, feeAmount = swapStepCompute(
 			sqrtPriceX64.BigInt(),
 			targetPrice.BigInt(),
@@ -588,6 +604,7 @@ func (p *CLMMPool) swapCompute(
 			zeroForOne,
 		)
 
+		// Update amounts
 		if baseInput {
 			amountSpecifiedRemaining = amountSpecifiedRemaining.Sub(amountIn.Add(feeAmount))
 			amountCalculated = amountCalculated.Sub(amountOut)
@@ -596,6 +613,7 @@ func (p *CLMMPool) swapCompute(
 			amountCalculated = amountCalculated.Add(amountIn.Add(feeAmount))
 		}
 
+		// Update liquidity and tick
 		if sqrtPriceX64.Equal(sqrtPriceNextX64) {
 			if initialized {
 				liquidityNet := nextInitTick.LiquidityNet
@@ -613,43 +631,50 @@ func (p *CLMMPool) swapCompute(
 		} else if sqrtPriceX64 != sqrtPriceStartX64 {
 			_T, err := getTickFromSqrtPriceX64(sqrtPriceX64)
 			if err != nil {
-				return cosmath.Int{}, err
+				return cosmath.Int{}, fmt.Errorf("failed to get tick from sqrt price: %w", err)
 			}
 			t = _T != tick && !zeroForOne && int64(tickArrayCurrent.StartTickIndex) == _T
 			tick = _T
 		}
+
+		// Safety check for infinite loops
 		loop++
 		if loop > 100 {
-			panic("1")
+			return cosmath.Int{}, errors.New("swap computation exceeded maximum iterations")
 		}
 	}
-	return amountCalculated, nil
 
+	return amountCalculated, nil
 }
 
-// GetOutputAmountAndRemainAccounts
-func (p CLMMPool) GetRemainAccounts(ctx context.Context, client *rpc.Client, inputTokenMint string) ([]solana.PublicKey, error) {
+// GetRemainAccounts returns the remaining accounts needed for the swap
+func (pool *CLMMPool) GetRemainAccounts(
+	ctx context.Context,
+	client *rpc.Client,
+	inputTokenMint string,
+) ([]solana.PublicKey, error) {
+	// Determine swap direction
+	zeroForOne := inputTokenMint == pool.TokenMint0.String()
 
-	// 1. 判断交易方向
-	zeroForOne := inputTokenMint == p.TokenMint0.String()
-
-	// 3. 获取第一个初始化的 tick array
-	_, firstTickArray, err := p.getFirstInitializedTickArray(zeroForOne, p.exTickArrayBitmap)
+	// Get first initialized tick array
+	_, firstTickArray, err := pool.getFirstInitializedTickArray(zeroForOne, pool.exTickArrayBitmap)
 	if err != nil {
-		return nil, fmt.Errorf("get first tick array error: %v", err)
+		return nil, fmt.Errorf("failed to get first tick array: %w", err)
 	}
+
 	allNeededAccounts := make([]solana.PublicKey, 0)
 	allNeededAccounts = append(allNeededAccounts, firstTickArray)
 
+	// Get next tick array
 	tickAarrayStartIndex, _ := nextInitializedTickArray(
-		int64(p.TickCurrent),
-		int64(p.TickSpacing),
+		int64(pool.TickCurrent),
+		int64(pool.TickSpacing),
 		zeroForOne,
-		p.TickArrayBitmap,
-		p.exTickArrayBitmap,
+		pool.TickArrayBitmap,
+		pool.exTickArrayBitmap,
 	)
 
-	exTickArrayBitmapAddress := getPdaTickArrayAddress(RAYDIUM_CLMM_PROGRAM_ID, p.PoolId, tickAarrayStartIndex)
+	exTickArrayBitmapAddress := getPdaTickArrayAddress(RAYDIUM_CLMM_PROGRAM_ID, pool.PoolId, tickAarrayStartIndex)
 	allNeededAccounts = append(allNeededAccounts, exTickArrayBitmapAddress)
 
 	return allNeededAccounts, nil

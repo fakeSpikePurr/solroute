@@ -14,18 +14,36 @@ import (
 	"github.com/yimingwow/solroute/utils"
 )
 
+const (
+	// PoolDataSize represents the expected size of pool data in bytes
+	PoolDataSize = 211
+
+	// DefaultSpan represents the default span value for the pool
+	DefaultSpan = 300
+
+	// BaseMintOffset represents the offset for BaseMint in the pool data
+	BaseMintOffset = 43
+
+	// QuoteMintOffset represents the offset for QuoteMint in the pool data
+	QuoteMintOffset = BaseMintOffset + 32
+
+	// DefaultFeeRate represents the default fee rate for swaps (0.25%)
+	DefaultFeeRate = 0.00250
+)
+
+// PumpAMMPool represents an AMM pool for the Pump protocol
 type PumpAMMPool struct {
 	Discriminator         [8]uint8 `bin:"skip"`
-	PoolBump              uint8    // 第9个字节，应该是252 (fc)
+	PoolBump              uint8
 	Index                 uint16
-	Creator               solana.PublicKey // 32字节
-	BaseMint              solana.PublicKey // 32字节
-	QuoteMint             solana.PublicKey // 32字节
-	LpMint                solana.PublicKey // 32字节
-	PoolBaseTokenAccount  solana.PublicKey // 32字节
-	PoolQuoteTokenAccount solana.PublicKey // 32字节
-	LpSupply              uint64           // 8字节
-	CoinCreator           solana.PublicKey // 32字节
+	Creator               solana.PublicKey
+	BaseMint              solana.PublicKey
+	QuoteMint             solana.PublicKey
+	LpMint                solana.PublicKey
+	PoolBaseTokenAccount  solana.PublicKey
+	PoolQuoteTokenAccount solana.PublicKey
+	LpSupply              uint64
+	CoinCreator           solana.PublicKey
 
 	PoolId           solana.PublicKey
 	BaseAmount       math.Int
@@ -34,32 +52,40 @@ type PumpAMMPool struct {
 	UserQuoteAccount solana.PublicKey
 }
 
-func (l *PumpAMMPool) Span() uint64 {
-	return uint64(300)
+// Span returns the default span value for the pool
+func (p *PumpAMMPool) Span() uint64 {
+	return uint64(DefaultSpan)
 }
 
-func (l *PumpAMMPool) Offset(value string) uint64 {
+// Offset returns the byte offset for a given field in the pool data
+func (p *PumpAMMPool) Offset(value string) uint64 {
 	switch value {
 	case "BaseMint":
-		return 43
+		return BaseMintOffset
 	case "QuoteMint":
-		return 43 + 32
+		return QuoteMintOffset
 	default:
 		return 0
 	}
 }
 
-func (l *PumpAMMPool) Decode(data []byte) error {
-	if len(data) < 211 {
-		return fmt.Errorf("data too short: expected 211 bytes, got %d", len(data))
+// Decode decodes the pool data from bytes
+func (p *PumpAMMPool) Decode(data []byte) error {
+	if len(data) < PoolDataSize {
+		return fmt.Errorf("data too short: expected %d bytes, got %d", PoolDataSize, len(data))
 	}
 	dec := bin.NewBinDecoder(data)
-	return dec.Decode(l)
+	return dec.Decode(p)
 }
 
-func ParsePoolData(data []byte) *PumpAMMPool {
+// ParsePoolData parses the raw pool data into a PumpAMMPool struct
+func ParsePoolData(data []byte) (*PumpAMMPool, error) {
+	if len(data) < PoolDataSize {
+		return nil, fmt.Errorf("data too short: expected %d bytes, got %d", PoolDataSize, len(data))
+	}
+
 	layout := &PumpAMMPool{}
-	// 解析结构
+	// Parse structure
 	discriminator := [8]byte{}
 	copy(discriminator[:], data[:8])
 	layout.PoolBump = uint8(data[8])
@@ -86,7 +112,7 @@ func ParsePoolData(data []byte) *PumpAMMPool {
 		layout.CoinCreator = solana.MustPublicKeyFromBase58("11111111111111111111111111111111")
 	}
 
-	return layout
+	return layout, nil
 }
 
 func (l *PumpAMMPool) GetID() string {
@@ -110,20 +136,20 @@ func (s *PumpAMMPool) BuildSwapInstructions(
 	minOut math.Int,
 ) ([]solana.Instruction, error) {
 	if inputMint == s.BaseMint.String() {
-		return s.buyInAMMPool(ctx, user, s, inputAmount, minOut)
+		return s.buyInAMMPool(user, s, inputAmount, minOut)
 	} else {
-		return s.sellInAMMPool(ctx, user, s, inputAmount, minOut)
+		return s.sellInAMMPool(user, s, inputAmount, minOut)
 	}
 }
 
-func (s *PumpAMMPool) buyInAMMPool(ctx context.Context, userAddr solana.PublicKey, pool *PumpAMMPool,
+func (s *PumpAMMPool) buyInAMMPool(userAddr solana.PublicKey, pool *PumpAMMPool,
 	maxInputAmountWithDecimals math.Int, outAmountWithDecimals math.Int) ([]solana.Instruction, error) {
-	// 初始化指令数组和签名者
+	// Initialize instruction array
 	instrs := []solana.Instruction{}
 
 	inst := BuySwapInstruction{
 		BaseAmountOut:    outAmountWithDecimals.Uint64(),
-		MAxQuoteAmountIn: maxInputAmountWithDecimals.Uint64(),
+		MaxQuoteAmountIn: maxInputAmountWithDecimals.Uint64(),
 	}
 	if pool.CoinCreator == solana.MustPublicKeyFromBase58("11111111111111111111111111111111") {
 		inst.AccountMetaSlice = make(solana.AccountMetaSlice, 17)
@@ -134,7 +160,7 @@ func (s *PumpAMMPool) buyInAMMPool(ctx context.Context, userAddr solana.PublicKe
 	inst.BaseVariant = bin.BaseVariant{
 		Impl: inst,
 	}
-	// 确保使用正确的 Token Program 地址
+	// Ensure correct Token Program address
 	inst.AccountMetaSlice[0] = solana.NewAccountMeta(pool.PoolId, false, false)
 	inst.AccountMetaSlice[1] = solana.NewAccountMeta(userAddr, true, true)
 	inst.AccountMetaSlice[2] = solana.NewAccountMeta(PumpGlobalConfig, false, false)
@@ -154,15 +180,23 @@ func (s *PumpAMMPool) buyInAMMPool(ctx context.Context, userAddr solana.PublicKe
 	inst.AccountMetaSlice[15] = solana.NewAccountMeta(solana.MustPublicKeyFromBase58("GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR"), false, false)
 	inst.AccountMetaSlice[16] = solana.NewAccountMeta(PumpSwapProgramID, false, false)
 	if pool.CoinCreator != solana.MustPublicKeyFromBase58("11111111111111111111111111111111") {
-		inst.AccountMetaSlice[17] = solana.NewAccountMeta(coinCreatorVaultATA(pool.CoinCreator), true, false)
-		inst.AccountMetaSlice[18] = solana.NewAccountMeta(coinCreatorVaultAuthority(pool.CoinCreator), false, false)
+		ata, err := GetCoinCreatorVaultATA(pool.CoinCreator)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get coin creator vault ata: %w", err)
+		}
+		inst.AccountMetaSlice[17] = solana.NewAccountMeta(ata, true, false)
+		authority, err := GetCoinCreatorVaultAuthority(pool.CoinCreator)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get coin creator vault authority: %w", err)
+		}
+		inst.AccountMetaSlice[18] = solana.NewAccountMeta(authority, false, false)
 	}
 	instrs = append(instrs, &inst)
 
 	return instrs, nil
 }
 
-func (s *PumpAMMPool) sellInAMMPool(ctx context.Context, userAddr solana.PublicKey,
+func (s *PumpAMMPool) sellInAMMPool(userAddr solana.PublicKey,
 	pool *PumpAMMPool, baseAmountIn math.Int, minQuoteAmountOut math.Int) ([]solana.Instruction, error) {
 	instrs := []solana.Instruction{}
 
@@ -198,8 +232,16 @@ func (s *PumpAMMPool) sellInAMMPool(ctx context.Context, userAddr solana.PublicK
 	inst.AccountMetaSlice[15] = solana.NewAccountMeta(solana.MustPublicKeyFromBase58("GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR"), false, false)
 	inst.AccountMetaSlice[16] = solana.NewAccountMeta(PumpSwapProgramID, false, false)
 	if pool.CoinCreator != solana.MustPublicKeyFromBase58("11111111111111111111111111111111") {
-		inst.AccountMetaSlice[17] = solana.NewAccountMeta(coinCreatorVaultATA(pool.CoinCreator), false, false)
-		inst.AccountMetaSlice[18] = solana.NewAccountMeta(coinCreatorVaultAuthority(pool.CoinCreator), false, false)
+		ata, err := GetCoinCreatorVaultATA(pool.CoinCreator)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get coin creator vault ata: %w", err)
+		}
+		inst.AccountMetaSlice[17] = solana.NewAccountMeta(ata, false, false)
+		authority, err := GetCoinCreatorVaultAuthority(pool.CoinCreator)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get coin creator vault authority: %w", err)
+		}
+		inst.AccountMetaSlice[18] = solana.NewAccountMeta(authority, false, false)
 	}
 	instrs = append(instrs, &inst)
 
@@ -209,7 +251,7 @@ func (s *PumpAMMPool) sellInAMMPool(ctx context.Context, userAddr solana.PublicK
 type BuySwapInstruction struct {
 	bin.BaseVariant
 	BaseAmountOut           uint64
-	MAxQuoteAmountIn        uint64
+	MaxQuoteAmountIn        uint64
 	solana.AccountMetaSlice `bin:"-" borsh_skip:"true"`
 }
 
@@ -222,8 +264,6 @@ func (inst *BuySwapInstruction) Accounts() (out []*solana.AccountMeta) {
 }
 
 func (inst *BuySwapInstruction) Data() ([]byte, error) {
-
-	// 手动构建指令数据
 	buf := new(bytes.Buffer)
 
 	// Write discriminator for swap instruction
@@ -240,7 +280,7 @@ func (inst *BuySwapInstruction) Data() ([]byte, error) {
 	}
 
 	// Write other amount threshold
-	if err := bin.NewBorshEncoder(buf).WriteUint64(inst.MAxQuoteAmountIn, binary.LittleEndian); err != nil {
+	if err := bin.NewBorshEncoder(buf).WriteUint64(inst.MaxQuoteAmountIn, binary.LittleEndian); err != nil {
 		return nil, fmt.Errorf("failed to encode other amount threshold: %w", err)
 	}
 
@@ -289,27 +329,25 @@ func (inst *SellSwapInstruction) Data() ([]byte, error) {
 }
 
 func (pool *PumpAMMPool) GetQuote(ctx context.Context, inputMint string, inputAmount math.Int) (math.Int, error) {
-
-	feeRate := 1 - 0.00250
+	feeRate := 1 - DefaultFeeRate
 	feeMultiplier := math.NewInt(int64(feeRate * float64(BaseDecimalInt)))
 
-	// 计算用base兑换quote的outamount
-	// 计算 k = baseIn * quoteOut
+	// Calculate k = baseAmount * quoteAmount
 	k := pool.BaseAmount.Mul(pool.QuoteAmount)
 
 	if inputMint == pool.BaseMint.String() {
-		// 计算 newBaseIn = baseIn + amountWithFee
+		// Calculate newBase = baseAmount + amountWithFee
 		newBase := pool.BaseAmount.Add(inputAmount.Mul(feeMultiplier).Quo(BaseDecimal))
-		// 计算 newQuoteOut = k / newBaseIn
+		// Calculate newQuote = k / newBase
 		newQuote := k.Quo(newBase)
 		priceBaseToQuote := pool.QuoteAmount.Sub(newQuote)
 		return priceBaseToQuote, nil
 	} else {
-		// 计算 newQuoteIn = quoteIn + amountWithFee
-		newQuote2 := pool.QuoteAmount.Add(inputAmount.Mul(feeMultiplier).Quo(BaseDecimal))
-		// 计算 newBaseOut = k / newQuoteIn
-		newBase2 := k.Quo(newQuote2)
-		priceQuoteToBase := pool.BaseAmount.Sub(newBase2)
+		// Calculate newQuote = quoteAmount + amountWithFee
+		newQuote := pool.QuoteAmount.Add(inputAmount.Mul(feeMultiplier).Quo(BaseDecimal))
+		// Calculate newBase = k / newQuote
+		newBase := k.Quo(newQuote)
+		priceQuoteToBase := pool.BaseAmount.Sub(newBase)
 		return priceQuoteToBase, nil
 	}
 }

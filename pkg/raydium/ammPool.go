@@ -1,4 +1,4 @@
-// Package raydium implements the Raydium AMM pool functionality
+// Package raydium implements the Raydium AMM pool functionality for Solana blockchain
 package raydium
 
 import (
@@ -20,7 +20,9 @@ import (
 	"lukechampine.com/uint128"
 )
 
+// AMMPool represents a Raydium AMM liquidity pool with all its parameters and state
 type AMMPool struct {
+	// Pool status and configuration
 	Status                 uint64
 	Nonce                  uint64
 	MaxOrder               uint64
@@ -45,35 +47,42 @@ type AMMPool struct {
 	PnlDenominator         uint64
 	SwapFeeNumerator       uint64
 	SwapFeeDenominator     uint64
-	BaseNeedTakePnl        uint64
-	QuoteNeedTakePnl       uint64
-	QuoteTotalPnl          uint64
-	BaseTotalPnl           uint64
-	PoolOpenTime           uint64
-	PunishPcAmount         uint64
-	PunishCoinAmount       uint64
-	OrderbookToInitTime    uint64
-	SwapBaseInAmount       uint128.Uint128
-	SwapQuoteOutAmount     uint128.Uint128
-	SwapBase2QuoteFee      uint64
-	SwapQuoteInAmount      uint128.Uint128
-	SwapBaseOutAmount      uint128.Uint128
-	SwapQuote2BaseFee      uint64
-	BaseVault              solana.PublicKey
-	QuoteVault             solana.PublicKey
-	BaseMint               solana.PublicKey
-	QuoteMint              solana.PublicKey
-	LpMint                 solana.PublicKey
-	OpenOrders             solana.PublicKey
-	MarketId               solana.PublicKey
-	MarketProgramId        solana.PublicKey
-	TargetOrders           solana.PublicKey
-	WithdrawQueue          solana.PublicKey
-	LpVault                solana.PublicKey
-	Owner                  solana.PublicKey
-	LpReserve              uint64
-	Padding                [3]uint64
 
+	// Pool state and PnL tracking
+	BaseNeedTakePnl     uint64
+	QuoteNeedTakePnl    uint64
+	QuoteTotalPnl       uint64
+	BaseTotalPnl        uint64
+	PoolOpenTime        uint64
+	PunishPcAmount      uint64
+	PunishCoinAmount    uint64
+	OrderbookToInitTime uint64
+
+	// Swap related amounts
+	SwapBaseInAmount   uint128.Uint128
+	SwapQuoteOutAmount uint128.Uint128
+	SwapBase2QuoteFee  uint64
+	SwapQuoteInAmount  uint128.Uint128
+	SwapBaseOutAmount  uint128.Uint128
+	SwapQuote2BaseFee  uint64
+
+	// Pool accounts
+	BaseVault       solana.PublicKey
+	QuoteVault      solana.PublicKey
+	BaseMint        solana.PublicKey
+	QuoteMint       solana.PublicKey
+	LpMint          solana.PublicKey
+	OpenOrders      solana.PublicKey
+	MarketId        solana.PublicKey
+	MarketProgramId solana.PublicKey
+	TargetOrders    solana.PublicKey
+	WithdrawQueue   solana.PublicKey
+	LpVault         solana.PublicKey
+	Owner           solana.PublicKey
+	LpReserve       uint64
+	Padding         [3]uint64
+
+	// Market related accounts
 	PoolId           solana.PublicKey
 	Authority        solana.PublicKey
 	MarketAuthority  solana.PublicKey
@@ -82,6 +91,8 @@ type AMMPool struct {
 	MarketBids       solana.PublicKey
 	MarketAsks       solana.PublicKey
 	MarketEventQueue solana.PublicKey
+
+	// Pool balances
 	BaseAmount       cosmath.Int
 	QuoteAmount      cosmath.Int
 	BaseReserve      cosmath.Int
@@ -285,13 +296,14 @@ func (l *MarketStateLayoutV3) Offset(value string) uint64 {
 	return uint64(fieldType.Offset)
 }
 
+// Print outputs the pool information in a structured JSON format
 func (l *MarketStateLayoutV3) Print() {
-	stringLayout, err := json.Marshal(l)
+	poolInfo, err := json.MarshalIndent(l, "", "  ")
 	if err != nil {
-		log.Printf("Print pool info: %v\n", err)
+		log.Printf("Failed to marshal pool info: %v", err)
 		return
 	}
-	log.Printf(string(stringLayout))
+	log.Printf("Pool Information:\n%s", string(poolInfo))
 }
 
 // GetID returns the pool ID
@@ -309,16 +321,22 @@ func (p *AMMPool) GetType() pkg.PoolType {
 	return pkg.PoolTypeRaydiumCPMM
 }
 
-// GetQuote returns the quote for a given input amount
-func (p *AMMPool) GetQuote(ctx context.Context, inputMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
+// GetQuote calculates the expected output amount for a given input amount
+// It takes into account the current pool reserves and fees
+func (p *AMMPool) GetQuote(
+	ctx context.Context,
+	inputMint string,
+	inputAmount cosmath.Int,
+) (cosmath.Int, error) {
+	// Calculate effective reserves by subtracting pending PnL
 	p.BaseReserve = p.BaseAmount.Sub(cosmath.NewInt(int64(p.BaseNeedTakePnl)))
 	p.QuoteReserve = p.QuoteAmount.Sub(cosmath.NewInt(int64(p.QuoteNeedTakePnl)))
 
-	// Set reserves based on direction
+	// Set reserves and decimals based on swap direction
 	reserves := []cosmath.Int{p.BaseReserve, p.QuoteReserve}
 	mintDecimals := []int{int(p.BaseDecimal), int(p.QuoteDecimal)}
 
-	// Determine input side
+	// Swap reserves if input is quote token
 	if inputMint == p.QuoteMint.String() {
 		reserves[0], reserves[1] = reserves[1], reserves[0]
 		mintDecimals[0], mintDecimals[1] = mintDecimals[1], mintDecimals[0]
@@ -331,22 +349,23 @@ func (p *AMMPool) GetQuote(ctx context.Context, inputMint string, inputAmount co
 	amountOutRaw := cosmath.ZeroInt()
 	feeRaw := cosmath.ZeroInt()
 
-	// If amountIn is not zero, calculate amountOut
+	// Calculate output amount if input is non-zero
 	if !inputAmount.IsZero() {
-		// Calculate fee
+		// Calculate fee based on input amount
 		feeRaw = inputAmount.Mul(LIQUIDITY_FEES_NUMERATOR).Quo(LIQUIDITY_FEES_DENOMINATOR)
 
-		// Calculate amountInWithFee
+		// Calculate amount after fee
 		amountInWithFee := inputAmount.Sub(feeRaw)
 
-		// Calculate output amount using constant product formula
+		// Calculate output using constant product formula: x * y = k
 		denominator := reserveIn.Add(amountInWithFee)
 		amountOutRaw = reserveOut.Mul(amountInWithFee).Quo(denominator)
 	}
 	return amountOutRaw, nil
 }
 
-// BuildSwapInstructions builds the swap instructions for the pool
+// BuildSwapInstructions constructs the necessary instructions for executing a swap
+// It handles both base-to-quote and quote-to-base swaps
 func (pool *AMMPool) BuildSwapInstructions(
 	ctx context.Context,
 	solClient *rpc.Client,
@@ -355,9 +374,9 @@ func (pool *AMMPool) BuildSwapInstructions(
 	inputAmount cosmath.Int,
 	minOut cosmath.Int,
 ) ([]solana.Instruction, error) {
-
 	instrs := []solana.Instruction{}
 
+	// Determine input token mint
 	var inputValueMint solana.PublicKey
 	if inputMint == pool.BaseMint.String() {
 		inputValueMint = pool.BaseMint
@@ -365,9 +384,8 @@ func (pool *AMMPool) BuildSwapInstructions(
 		inputValueMint = pool.QuoteMint
 	}
 
-	// Create toAccount if needed
-	var fromAccount solana.PublicKey
-	var toAccount solana.PublicKey
+	// Set up source and destination accounts based on swap direction
+	var fromAccount, toAccount solana.PublicKey
 	if inputValueMint.String() == pool.BaseMint.String() {
 		fromAccount = pool.UserBaseAccount
 		toAccount = pool.UserQuoteAccount
@@ -376,6 +394,7 @@ func (pool *AMMPool) BuildSwapInstructions(
 		toAccount = pool.UserBaseAccount
 	}
 
+	// Create swap instruction
 	inst := InSwapInstruction{
 		InAmount:         inputAmount.Uint64(),
 		MinimumOutAmount: minOut.Uint64(),
@@ -384,7 +403,8 @@ func (pool *AMMPool) BuildSwapInstructions(
 	inst.BaseVariant = bin.BaseVariant{
 		Impl: inst,
 	}
-	// 确保使用正确的 Token Program 地址
+
+	// Set up account metas for the swap instruction
 	tokenProgramID := solana.MustPublicKeyFromBase58("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
 	inst.AccountMetaSlice[0] = solana.NewAccountMeta(tokenProgramID, false, false)
 	inst.AccountMetaSlice[1] = solana.NewAccountMeta(pool.PoolId, true, false)
@@ -404,8 +424,8 @@ func (pool *AMMPool) BuildSwapInstructions(
 	inst.AccountMetaSlice[15] = solana.NewAccountMeta(fromAccount, true, false)
 	inst.AccountMetaSlice[16] = solana.NewAccountMeta(toAccount, true, false)
 	inst.AccountMetaSlice[17] = solana.NewAccountMeta(user, true, true)
-	instrs = append(instrs, &inst)
 
+	instrs = append(instrs, &inst)
 	return instrs, nil
 }
 
