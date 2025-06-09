@@ -6,9 +6,9 @@ import (
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/yimingwow/solroute/pkg"
-	"github.com/yimingwow/solroute/pkg/pool/raydium"
-	"github.com/yimingwow/solroute/pkg/sol"
+	"github.com/yimingWOW/solroute/pkg"
+	"github.com/yimingWOW/solroute/pkg/pool/raydium"
+	"github.com/yimingWOW/solroute/pkg/sol"
 )
 
 // RaydiumCpmmProtocol represents the Raydium CPMM protocol implementation

@@ -10,7 +10,7 @@ import (
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/yimingwow/solroute/utils"
+	"github.com/yimingWOW/solroute/utils"
 )
 
 const (

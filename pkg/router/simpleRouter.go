@@ -7,7 +7,7 @@ import (
 
 	"cosmossdk.io/math"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/yimingwow/solroute/pkg"
+	"github.com/yimingWOW/solroute/pkg"
 )
 
 type SimpleRouter struct {

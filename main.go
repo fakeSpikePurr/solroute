@@ -7,9 +7,9 @@ import (
 	"cosmossdk.io/math"
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/yimingwow/solroute/pkg/protocol"
-	"github.com/yimingwow/solroute/pkg/router"
-	"github.com/yimingwow/solroute/pkg/sol"
+	"github.com/yimingWOW/solroute/pkg/protocol"
+	"github.com/yimingWOW/solroute/pkg/router"
+	"github.com/yimingWOW/solroute/pkg/sol"
 )
 
 const (
