@@ -7,7 +7,8 @@ import (
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/yimingwow/solroute/pkg/raydium"
+	"github.com/yimingwow/solroute/pkg"
+	"github.com/yimingwow/solroute/pkg/pool/raydium"
 	"github.com/yimingwow/solroute/pkg/sol"
 )
 
@@ -21,7 +22,7 @@ func NewRaydiumClmm(solClient *sol.Client) *RaydiumClmmProtocol {
 	}
 }
 
-func (p *RaydiumClmmProtocol) GetCLMMPoolByPair(ctx context.Context, baseMint string, quoteMint string) ([]*raydium.CLMMPool, error) {
+func (p *RaydiumClmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint string, quoteMint string) ([]pkg.Pool, error) {
 	accounts := make([]*rpc.KeyedAccount, 0)
 	programAccounts, err := p.getCLMMPoolAccountsByTokenPair(ctx, baseMint, quoteMint)
 	if err != nil {
@@ -34,7 +35,7 @@ func (p *RaydiumClmmProtocol) GetCLMMPoolByPair(ctx context.Context, baseMint st
 	}
 	accounts = append(accounts, programAccounts...)
 
-	res := make([]*raydium.CLMMPool, 0)
+	res := make([]pkg.Pool, 0)
 	for _, v := range accounts {
 		data := v.Account.Data.GetBinary()
 		layout := &raydium.CLMMPool{}
@@ -101,16 +102,20 @@ func (p *RaydiumClmmProtocol) getCLMMPoolAccountsByTokenPair(ctx context.Context
 	return result, nil
 }
 
-func (r *RaydiumClmmProtocol) GetCLMMPoolByPoolId(ctx context.Context, poolId solana.PublicKey) (*raydium.CLMMPool, error) {
-	account, err := r.SolClient.RpcClient.GetAccountInfo(ctx, poolId)
+func (r *RaydiumClmmProtocol) FetchPoolByID(ctx context.Context, poolId string) (pkg.Pool, error) {
+	poolIdKey, err := solana.PublicKeyFromBase58(poolId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pool account %s: %w", poolId.String(), err)
+		return nil, fmt.Errorf("invalid pool id: %w", err)
+	}
+	account, err := r.SolClient.RpcClient.GetAccountInfo(ctx, poolIdKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pool account %s: %w", poolId, err)
 	}
 
 	data := account.Value.Data.GetBinary()
 	layout := &raydium.CLMMPool{}
 	if err := layout.Decode(data); err != nil {
-		return nil, fmt.Errorf("failed to decode pool data for %s: %w", poolId.String(), err)
+		return nil, fmt.Errorf("failed to decode pool data for %s: %w", poolId, err)
 	}
 	return layout, nil
 }

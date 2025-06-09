@@ -14,14 +14,13 @@ import (
 
 const (
 	// RPC endpoints
-	mainnetRPC = "https://api.mainnet-beta.solana.com"
-	jitoRPC    = "https://jito-rpc.mainnet-beta.solana.com"
+	mainnetRPC = ""
 
 	// Token addresses
 	usdcTokenAddr = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 
 	// Swap parameters
-	defaultAmountIn = 1000000000 // 1000 USDC (6 decimals)
+	defaultAmountIn = 1000000000 // 1 sol (9 decimals)
 	slippageBps     = 100        // 1% slippage
 )
 
@@ -30,14 +29,17 @@ func main() {
 	var privateKey solana.PrivateKey
 
 	ctx := context.Background()
-	solClient, err := sol.NewClient(ctx, mainnetRPC, jitoRPC)
+	solClient, err := sol.NewClient(ctx, mainnetRPC)
 	if err != nil {
 		log.Fatalf("Failed to create solana client: %v", err)
 	}
+	defer solClient.Close()
 
 	router := router.NewSimpleRouter(
 		protocol.NewPumpAmm(solClient),
 		protocol.NewRaydiumAmm(solClient),
+		protocol.NewRaydiumClmm(solClient),
+		protocol.NewRaydiumCpmm(solClient),
 	)
 
 	// Query available pools
@@ -51,7 +53,7 @@ func main() {
 
 	// Find best pool for the swap
 	amountIn := math.NewInt(defaultAmountIn)
-	bestPool, amountOut, err := router.GetBestPool(ctx, usdcTokenAddr, sol.WSOL.String(), amountIn)
+	bestPool, amountOut, err := router.GetBestPool(ctx, solClient.RpcClient, sol.WSOL.String(), usdcTokenAddr, amountIn)
 	if err != nil {
 		log.Fatalf("Failed to get best pool: %v", err)
 	}

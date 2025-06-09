@@ -3,8 +3,10 @@ package router
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"cosmossdk.io/math"
+	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingwow/solroute/pkg"
 )
 
@@ -30,11 +32,12 @@ func (r *SimpleRouter) QueryAllPools(ctx context.Context, baseMint, quoteMint st
 
 func (r *SimpleRouter) GetBestPool(
 	ctx context.Context,
+	solClient *rpc.Client,
 	tokenIn, tokenOut string,
 	amountIn math.Int,
 ) (pkg.Pool, math.Int, error) {
 	var best pkg.Pool
-	var maxOut math.Int
+	maxOut := math.NewInt(0)
 
 	for _, p := range r.protocols {
 		pools, err := p.FetchPoolsByPair(ctx, tokenIn, tokenOut)
@@ -43,10 +46,11 @@ func (r *SimpleRouter) GetBestPool(
 		}
 
 		for _, pool := range pools {
-			outAmount, err := pool.GetQuote(ctx, tokenIn, amountIn)
+			outAmount, err := pool.GetQuote(ctx, solClient, tokenIn, amountIn)
 			if err != nil {
 				continue
 			}
+			log.Printf("pool: %v, outAmount: %v", pool.GetID(), outAmount)
 
 			if outAmount.GT(maxOut) {
 				maxOut = outAmount

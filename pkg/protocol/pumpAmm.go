@@ -7,7 +7,7 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingwow/solroute/pkg"
-	"github.com/yimingwow/solroute/pkg/pump"
+	"github.com/yimingwow/solroute/pkg/pool/pump"
 	"github.com/yimingwow/solroute/pkg/sol"
 )
 

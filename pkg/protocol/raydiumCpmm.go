@@ -6,36 +6,40 @@ import (
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/yimingwow/solroute/pkg/raydium"
+	"github.com/yimingwow/solroute/pkg"
+	"github.com/yimingwow/solroute/pkg/pool/raydium"
 	"github.com/yimingwow/solroute/pkg/sol"
 )
 
+// RaydiumCpmmProtocol represents the Raydium CPMM protocol implementation
 type RaydiumCpmmProtocol struct {
 	SolClient *sol.Client
 }
 
+// NewRaydiumCpmm creates a new instance of RaydiumCpmmProtocol
 func NewRaydiumCpmm(solClient *sol.Client) *RaydiumCpmmProtocol {
 	return &RaydiumCpmmProtocol{
 		SolClient: solClient,
 	}
 }
 
-func (p *RaydiumCpmmProtocol) GetCPMMPoolByTokenPair(ctx context.Context, baseMint string, quoteMint string) ([]*raydium.CPMMPool, error) {
-	res := make([]*raydium.CPMMPool, 0)
-
+// FetchPoolsByPair retrieves all pools for a given token pair
+func (p *RaydiumCpmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint string, quoteMint string) ([]pkg.Pool, error) {
 	// Fetch pools with baseMint as token0
 	programAccounts, err := p.getCPMMPoolAccountsByTokenPair(ctx, baseMint, quoteMint)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", baseMint, err)
 	}
-	for _, v := range programAccounts {
-		data := v.Account.Data.GetBinary()
-		var layout raydium.CPMMPool
-		if err := layout.Decode(data); err != nil {
+
+	pools := make([]pkg.Pool, 0)
+	for _, account := range programAccounts {
+		data := account.Account.Data.GetBinary()
+		pool := &raydium.CPMMPool{}
+		if err := pool.Decode(data); err != nil {
 			continue
 		}
-		layout.PoolId = v.Pubkey
-		res = append(res, &layout)
+		pool.PoolId = account.Pubkey
+		pools = append(pools, pool)
 	}
 
 	// Fetch pools with quoteMint as token0
@@ -43,23 +47,27 @@ func (p *RaydiumCpmmProtocol) GetCPMMPoolByTokenPair(ctx context.Context, baseMi
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", quoteMint, err)
 	}
-	for _, v := range programAccounts {
-		data := v.Account.Data.GetBinary()
-		var layout raydium.CPMMPool
-		if err := layout.Decode(data); err != nil {
+
+	for _, account := range programAccounts {
+		data := account.Account.Data.GetBinary()
+		pool := &raydium.CPMMPool{}
+		if err := pool.Decode(data); err != nil {
 			continue
 		}
-		layout.PoolId = v.Pubkey
-		res = append(res, &layout)
+		pool.PoolId = account.Pubkey
+		pools = append(pools, pool)
 	}
-	return res, nil
+
+	return pools, nil
 }
 
+// getCPMMPoolAccountsByTokenPair retrieves CPMM pool accounts for a given token pair
 func (p *RaydiumCpmmProtocol) getCPMMPoolAccountsByTokenPair(ctx context.Context, baseMint string, quoteMint string) (rpc.GetProgramAccountsResult, error) {
 	baseKey, err := solana.PublicKeyFromBase58(baseMint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid base mint address: %w", err)
 	}
+
 	quoteKey, err := solana.PublicKeyFromBase58(quoteMint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid quote mint address: %w", err)
@@ -94,18 +102,18 @@ func (p *RaydiumCpmmProtocol) getCPMMPoolAccountsByTokenPair(ctx context.Context
 	return result, nil
 }
 
-// GetCPMMPoolByPoolId 获取CPMM池子信息, poolRaydium_V4==CPMMPool
-func (r *RaydiumCpmmProtocol) GetCPMMPoolByPoolId(ctx context.Context, poolID solana.PublicKey) (*raydium.CPMMPool, error) {
-	account, err := r.SolClient.RpcClient.GetAccountInfo(ctx, poolID)
+// FetchPoolByID retrieves a CPMM pool by its ID
+func (p *RaydiumCpmmProtocol) FetchPoolByID(ctx context.Context, poolID string) (pkg.Pool, error) {
+	account, err := p.SolClient.RpcClient.GetAccountInfo(ctx, solana.MustPublicKeyFromBase58(poolID))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pool account %s: %w", poolID.String(), err)
+		return nil, fmt.Errorf("failed to get pool account %s: %w", poolID, err)
 	}
 
-	layout := &raydium.CPMMPool{}
-	if err := layout.Decode(account.Value.Data.GetBinary()); err != nil {
-		return nil, fmt.Errorf("failed to decode pool data for %s: %w", poolID.String(), err)
+	pool := &raydium.CPMMPool{}
+	if err := pool.Decode(account.Value.Data.GetBinary()); err != nil {
+		return nil, fmt.Errorf("failed to decode pool data for %s: %w", poolID, err)
 	}
-	layout.PoolId = poolID
+	pool.PoolId = solana.MustPublicKeyFromBase58(poolID)
 
-	return layout, nil
+	return pool, nil
 }
