@@ -16,14 +16,6 @@ SolRoute is a Go SDK that serves as the fundamental infrastructure for building 
   - Cross-DEX routing and optimal path finding
   - Transaction instruction building
 
-## Use Cases
-
-SolRoute's direct blockchain interaction makes it ideal for building:
-
-- **Trading Services**: Price aggregation, best price routing, arbitrage bots
-- **DeFi Applications**: DEX aggregators, liquidity management tools
-- **Research Tools**: Market analysis, strategy backtesting
-
 ## Quick Start
 
 ```go
