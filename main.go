@@ -40,6 +40,7 @@ func main() {
 		protocol.NewRaydiumAmm(solClient),
 		protocol.NewRaydiumClmm(solClient),
 		protocol.NewRaydiumCpmm(solClient),
+		protocol.NewMeteoraDlmm(solClient),
 	)
 
 	// Query available pools
