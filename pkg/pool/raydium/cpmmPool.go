@@ -190,7 +190,7 @@ func getAuthorityPDA() (solana.PublicKey, uint8, error) {
 	return authority, bump, nil
 }
 
-func (pool *CPMMPool) GetQuote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount math.Int) (math.Int, error) {
+func (pool *CPMMPool) Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount math.Int) (math.Int, error) {
 	// update pool data first
 	accounts := make([]solana.PublicKey, 0)
 	accounts = append(accounts, pool.Token0Vault)

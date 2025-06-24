@@ -11,7 +11,7 @@ import (
 type Pool interface {
 	GetID() string
 	GetTokens() (baseMint, quoteMint string)
-	GetQuote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount math.Int) (math.Int, error)
+	Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount math.Int) (math.Int, error)
 	BuildSwapInstructions(
 		ctx context.Context,
 		solClient *rpc.Client,

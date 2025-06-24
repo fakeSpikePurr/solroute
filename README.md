@@ -9,10 +9,11 @@ SolRoute is a Go SDK that serves as the fundamental infrastructure for building 
   - Raydium CPMM (`CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C`)
   - Raydium CLMM (`CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK`)
   - PumpSwap AMM (`pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA`)
+  - Meteora DLMM (`LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo`)
 
 - **Core Functionality**
   - Pool discovery and management
-  - Price calculation and quote generation
+  - Quote generation
   - Cross-DEX routing and optimal path finding
   - Transaction instruction building
 

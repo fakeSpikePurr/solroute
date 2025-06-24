@@ -323,7 +323,7 @@ func (inst *SellSwapInstruction) Data() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (pool *PumpAMMPool) GetQuote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount math.Int) (math.Int, error) {
+func (pool *PumpAMMPool) Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount math.Int) (math.Int, error) {
 	// update pool data first
 	accounts := make([]solana.PublicKey, 0)
 	accounts = append(accounts, pool.PoolBaseTokenAccount)

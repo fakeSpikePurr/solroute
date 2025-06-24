@@ -46,7 +46,7 @@ func (r *SimpleRouter) GetBestPool(
 		}
 
 		for _, pool := range pools {
-			outAmount, err := pool.GetQuote(ctx, solClient, tokenIn, amountIn)
+			outAmount, err := pool.Quote(ctx, solClient, tokenIn, amountIn)
 			if err != nil {
 				continue
 			}

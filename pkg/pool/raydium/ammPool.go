@@ -316,9 +316,9 @@ func (p *AMMPool) GetTokens() (baseMint, quoteMint string) {
 	return p.BaseMint.String(), p.QuoteMint.String()
 }
 
-// GetQuote calculates the expected output amount for a given input amount
+// Quote calculates the expected output amount for a given input amount
 // It takes into account the current pool reserves and fees
-func (p *AMMPool) GetQuote(
+func (p *AMMPool) Quote(
 	ctx context.Context,
 	solClient *rpc.Client,
 	inputMint string,

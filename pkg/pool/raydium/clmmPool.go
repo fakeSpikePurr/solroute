@@ -436,7 +436,7 @@ func (pool *CLMMPool) GetTokens() (baseMint, quoteMint string) {
 	return pool.TokenMint0.String(), pool.TokenMint1.String()
 }
 
-func (pool *CLMMPool) GetQuote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
+func (pool *CLMMPool) Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
 	// update pool state first
 	results, err := solClient.GetMultipleAccountsWithOpts(ctx,
 		[]solana.PublicKey{pool.ExBitmapAddress},

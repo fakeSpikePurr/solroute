@@ -14,8 +14,8 @@ import (
 	"lukechampine.com/uint128"
 )
 
-// GetQuote calculates the output amount for a given input amount and token
-func (pool *MeteoraDlmmPool) GetQuote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount cosmosmath.Int) (cosmosmath.Int, error) {
+// Quote calculates the output amount for a given input amount and token
+func (pool *MeteoraDlmmPool) Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount cosmosmath.Int) (cosmosmath.Int, error) {
 	pool.orgActiveId = pool.activeId
 	totalAmountOut := cosmosmath.ZeroInt()
 
