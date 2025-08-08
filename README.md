@@ -61,7 +61,9 @@ solroute/
 │   └── sol/         # Solana client
 ```
 
-## Contributing
+## Contribution
+
+Contributed by [yimingWOW](https://github.com/yimingWOW) from [Solar](https://www.solar.team/).
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
