@@ -2,22 +2,24 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 
 	"cosmossdk.io/math"
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
+	"github.com/yimingWOW/solroute/config"
 	"github.com/yimingWOW/solroute/pkg/protocol"
 	"github.com/yimingWOW/solroute/pkg/router"
 	"github.com/yimingWOW/solroute/pkg/sol"
+	"github.com/zeromicro/go-zero/core/conf"
 )
 
-const (
-	privateKeyStr = ""
-	// RPC endpoints
-	mainnetRPC   = ""
-	mainnetWSRPC = ""
+func init() {
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+}
 
+const (
 	// Token addresses
 	usdcTokenAddr = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 
@@ -27,12 +29,16 @@ const (
 )
 
 func main() {
+	var config config.Config
+	configFile := flag.String("f", "./config/config.json", "the config file")
+	conf.MustLoad(*configFile, &config)
+
 	// TODO: Initialize private key from environment or config file
-	privateKey := solana.MustPrivateKeyFromBase58(privateKeyStr)
+	privateKey := solana.MustPrivateKeyFromBase58(config.PrivateKey)
 	log.Printf("PublicKey: %v", privateKey.PublicKey())
 
 	ctx := context.Background()
-	solClient, err := sol.NewClient(ctx, mainnetRPC, mainnetWSRPC)
+	solClient, err := sol.NewClient(ctx, config.RPC, config.WSRPC)
 	if err != nil {
 		log.Fatalf("Failed to create solana client: %v", err)
 	}

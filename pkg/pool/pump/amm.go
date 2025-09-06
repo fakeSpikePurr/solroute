@@ -11,7 +11,7 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingWOW/solroute/pkg"
-	"github.com/yimingWOW/solroute/utils"
+	"github.com/yimingWOW/solroute/pkg/anchor"
 )
 
 const (
@@ -277,7 +277,7 @@ func (inst *BuySwapInstruction) Data() ([]byte, error) {
 	// Write discriminator for swap instruction
 	namespace := "global"
 	name := "buy"
-	discriminator := utils.GetDiscriminator(namespace, name)
+	discriminator := anchor.GetDiscriminator(namespace, name)
 	if _, err := buf.Write(discriminator); err != nil {
 		return nil, fmt.Errorf("failed to write discriminator: %w", err)
 	}
@@ -318,7 +318,7 @@ func (inst *SellSwapInstruction) Data() ([]byte, error) {
 	// Write discriminator for swap instruction
 	namespace := "global"
 	name := "sell"
-	discriminator := utils.GetDiscriminator(namespace, name)
+	discriminator := anchor.GetDiscriminator(namespace, name)
 	if _, err := buf.Write(discriminator); err != nil {
 		return nil, fmt.Errorf("failed to write discriminator: %w", err)
 	}
