@@ -18,7 +18,7 @@ func (t *Client) CoverWsol(ctx context.Context, privateKey solana.PrivateKey, am
 	allInstrs := make([]solana.Instruction, 0)
 	user := privateKey.PublicKey()
 
-	acc, err := t.RpcClient.GetTokenAccountsByOwner(ctx, user,
+	acc, err := t.GetTokenAccountsByOwner(ctx, user,
 		&rpc.GetTokenAccountsConfig{Mint: WSOL.ToPointer()},
 		&rpc.GetTokenAccountsOpts{
 			Encoding: "jsonParsed",
@@ -66,12 +66,7 @@ func (t *Client) CoverWsol(ctx context.Context, privateKey solana.PrivateKey, am
 	}
 	allInstrs = append(allInstrs, syncNativeInst)
 
-	recent, err := t.RpcClient.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
-	if err != nil {
-		log.Printf("GetLatestBlockhash err: %v\n", err)
-		return err
-	}
-	_, err = t.SendTx(ctx, recent.Value.Blockhash, signers, allInstrs, false)
+	_, err = t.SendTx(ctx, signers, allInstrs, false)
 	if err != nil {
 		log.Printf("Failed to send transaction: %v\n", err)
 		return err
@@ -101,13 +96,7 @@ func (t *Client) CloseWsol(ctx context.Context, privateKey solana.PrivateKey) er
 		return err
 	}
 	insts = append(insts, closeInst)
-
-	recent, err := t.RpcClient.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
-	if err != nil {
-		log.Printf("GetLatestBlockhash err: %v\n", err)
-		return err
-	}
-	_, err = t.SendTx(ctx, recent.Value.Blockhash, signers, insts, false)
+	_, err = t.SendTx(ctx, signers, insts, false)
 	if err != nil {
 		log.Printf("Failed to send transaction: %v\n", err)
 		return err

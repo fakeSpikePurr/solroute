@@ -3,6 +3,7 @@ package sol
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
@@ -42,14 +43,19 @@ func signTransaction(blockhash solana.Hash, signers []solana.PrivateKey, instrs 
 }
 
 // SendTx sends or simulates a transaction based on the isSimulate flag
-func (c *Client) SendTx(ctx context.Context, blockhash solana.Hash, signers []solana.PrivateKey, insts []solana.Instruction, isSimulate bool) (solana.Signature, error) {
-	tx, err := signTransaction(blockhash, signers, insts...)
+func (c *Client) SendTx(ctx context.Context, signers []solana.PrivateKey, insts []solana.Instruction, isSimulate bool) (solana.Signature, error) {
+	res, err := c.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
+	if err != nil {
+		log.Fatalf("Failed to get blockhash: %v", err)
+	}
+
+	tx, err := signTransaction(res.Value.Blockhash, signers, insts...)
 	if err != nil {
 		return solana.Signature{}, fmt.Errorf("failed to sign transaction: %w", err)
 	}
 
 	if isSimulate {
-		if _, err := c.RpcClient.SimulateTransaction(ctx, tx); err != nil {
+		if _, err := c.SimulateTransaction(ctx, tx); err != nil {
 			return solana.Signature{}, fmt.Errorf("failed to simulate transaction: %w", err)
 		}
 		// Return empty signature for simulation
@@ -57,7 +63,7 @@ func (c *Client) SendTx(ctx context.Context, blockhash solana.Hash, signers []so
 	}
 
 	// Send transaction with optimized options
-	sig, err := c.RpcClient.SendTransactionWithOpts(
+	sig, err := c.SendTransactionWithOpts(
 		ctx, tx,
 		rpc.TransactionOpts{
 			SkipPreflight:       true,

@@ -18,6 +18,7 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingWOW/solroute/pkg"
+	"github.com/yimingWOW/solroute/pkg/sol"
 	"lukechampine.com/uint128"
 )
 
@@ -104,10 +105,6 @@ type AMMPool struct {
 
 func (pool *AMMPool) ProtocolName() pkg.ProtocolName {
 	return pkg.ProtocolNameRaydiumAmm
-}
-
-func (pool *AMMPool) ProtocolType() pkg.ProtocolType {
-	return pkg.ProtocolTypeRaydiumAmm
 }
 
 func (pool *AMMPool) GetProgramID() solana.PublicKey {
@@ -333,7 +330,7 @@ func (p *AMMPool) GetTokens() (baseMint, quoteMint string) {
 // It takes into account the current pool reserves and fees
 func (p *AMMPool) Quote(
 	ctx context.Context,
-	solClient *rpc.Client,
+	solClient *sol.Client,
 	inputMint string,
 	inputAmount cosmath.Int,
 ) (cosmath.Int, error) {
@@ -408,7 +405,7 @@ func (p *AMMPool) Quote(
 // It handles both base-to-quote and quote-to-base swaps
 func (pool *AMMPool) BuildSwapInstructions(
 	ctx context.Context,
-	solClient *rpc.Client,
+	solClient *sol.Client,
 	user solana.PublicKey,
 	inputMint string,
 	inputAmount cosmath.Int,

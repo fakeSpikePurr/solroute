@@ -4,49 +4,89 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 
 	"cosmossdk.io/math"
-	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingWOW/solroute/pkg"
+	"github.com/yimingWOW/solroute/pkg/sol"
 )
 
 type SimpleRouter struct {
-	protocols []pkg.Protocol
-	pools     []pkg.Pool
+	Protocols []pkg.Protocol
+	Pools     []pkg.Pool
 }
 
 func NewSimpleRouter(protocols ...pkg.Protocol) *SimpleRouter {
 	return &SimpleRouter{
-		protocols: protocols,
-		pools:     []pkg.Pool{},
+		Protocols: protocols,
+		Pools:     []pkg.Pool{},
 	}
 }
 
-func (r *SimpleRouter) QueryAllPools(ctx context.Context, baseMint, quoteMint string) ([]pkg.Pool, error) {
-	for _, proto := range r.protocols {
+func (r *SimpleRouter) QueryAllPools(ctx context.Context, baseMint, quoteMint string) error {
+	var allPools []pkg.Pool
+
+	// Loop through each protocol sequentially
+	for _, proto := range r.Protocols {
+		log.Printf("😈Fetching pools from protocol: %v", proto.ProtocolName())
 		pools, err := proto.FetchPoolsByPair(ctx, baseMint, quoteMint)
 		if err != nil {
+			log.Printf("error fetching pools from protocol: %v", err)
 			continue
 		}
-		r.pools = append(r.pools, pools...)
+		allPools = append(allPools, pools...)
 	}
-	return r.pools, nil
+
+	r.Pools = allPools
+	return nil
 }
 
-func (r *SimpleRouter) GetBestPool(ctx context.Context, solClient *rpc.Client, tokenIn, tokenOut string, amountIn math.Int) (pkg.Pool, math.Int, error) {
+func (r *SimpleRouter) GetBestPool(ctx context.Context, solClient *sol.Client, tokenIn string, amountIn math.Int) (pkg.Pool, math.Int, error) {
+	type quoteResult struct {
+		pool      pkg.Pool
+		outAmount math.Int
+		err       error
+	}
+
+	// Create a channel to collect results
+	resultChan := make(chan quoteResult, len(r.Pools))
+	var wg sync.WaitGroup
+
+	// Launch goroutines for each pool
+	for _, pool := range r.Pools {
+		wg.Add(1)
+		go func(p pkg.Pool) {
+			defer wg.Done()
+			outAmount, err := p.Quote(ctx, solClient, tokenIn, amountIn)
+			resultChan <- quoteResult{
+				pool:      p,
+				outAmount: outAmount,
+				err:       err,
+			}
+		}(pool)
+	}
+
+	// Close the channel when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results and find the best one
 	var best pkg.Pool
 	maxOut := math.NewInt(0)
-	for _, pool := range r.pools {
-		outAmount, err := pool.Quote(ctx, solClient, tokenIn, amountIn)
-		if err != nil {
-			log.Printf("error quoting: %v", err)
+
+	for result := range resultChan {
+		if result.err != nil {
+			log.Printf("error quoting pool %s: %v", result.pool.GetID(), result.err)
 			continue
 		}
-		if outAmount.GT(maxOut) {
-			maxOut = outAmount
-			best = pool
+		if result.outAmount.GT(maxOut) {
+			maxOut = result.outAmount
+			best = result.pool
 		}
 	}
+
 	if best == nil {
 		return nil, math.ZeroInt(), fmt.Errorf("no route found")
 	}

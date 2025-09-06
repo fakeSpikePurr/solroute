@@ -10,12 +10,12 @@ import (
 
 	cosmosmath "cosmossdk.io/math"
 	"github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/rpc"
+	"github.com/yimingWOW/solroute/pkg/sol"
 	"lukechampine.com/uint128"
 )
 
 // Quote calculates the output amount for a given input amount and token
-func (pool *MeteoraDlmmPool) Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount cosmosmath.Int) (cosmosmath.Int, error) {
+func (pool *MeteoraDlmmPool) Quote(ctx context.Context, solClient *sol.Client, inputMint string, inputAmount cosmosmath.Int) (cosmosmath.Int, error) {
 	pool.orgActiveId = pool.activeId
 	totalAmountOut := cosmosmath.ZeroInt()
 

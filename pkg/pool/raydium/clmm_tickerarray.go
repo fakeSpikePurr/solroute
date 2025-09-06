@@ -506,7 +506,6 @@ func nextInitializedTickArrayFromOneBitmap(lastTickArrayStartIndex, tickSpacing 
 		offsetBitMap := new(big.Int).Set(mergedBitmap)
 		offsetBitMap.Lsh(offsetBitMap, uint(TICK_ARRAY_BITMAP_SIZE-1-tickArrayOffsetInBitmap))
 
-		// 检查是否为零并查找前导零
 		if IsZero(512, offsetBitMap) || LeadingZeros(512, offsetBitMap) == nil {
 			return false, bitmapMinTickBoundary, nil
 		}

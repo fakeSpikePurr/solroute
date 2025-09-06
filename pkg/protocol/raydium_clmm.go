@@ -22,6 +22,10 @@ func NewRaydiumClmm(solClient *sol.Client) *RaydiumClmmProtocol {
 	}
 }
 
+func (p *RaydiumClmmProtocol) ProtocolName() pkg.ProtocolName {
+	return pkg.ProtocolNameRaydiumClmm
+}
+
 func (p *RaydiumClmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint string, quoteMint string) ([]pkg.Pool, error) {
 	accounts := make([]*rpc.KeyedAccount, 0)
 	programAccounts, err := p.getCLMMPoolAccountsByTokenPair(ctx, baseMint, quoteMint)
@@ -44,7 +48,7 @@ func (p *RaydiumClmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint str
 		}
 		layout.PoolId = v.Pubkey
 
-		ammConfigData, err := p.SolClient.RpcClient.GetAccountInfo(ctx, layout.AmmConfig)
+		ammConfigData, err := p.SolClient.GetAccountInfo(ctx, layout.AmmConfig)
 		if err != nil {
 			continue
 		}
@@ -76,7 +80,7 @@ func (p *RaydiumClmmProtocol) getCLMMPoolAccountsByTokenPair(ctx context.Context
 	}
 
 	var knownPoolLayout raydium.CLMMPool
-	result, err := p.SolClient.RpcClient.GetProgramAccountsWithOpts(ctx, raydium.RAYDIUM_CLMM_PROGRAM_ID, &rpc.GetProgramAccountsOpts{
+	result, err := p.SolClient.GetProgramAccountsWithOpts(ctx, raydium.RAYDIUM_CLMM_PROGRAM_ID, &rpc.GetProgramAccountsOpts{
 		Filters: []rpc.RPCFilter{
 			{
 				DataSize: uint64(knownPoolLayout.Span()),
@@ -107,7 +111,7 @@ func (r *RaydiumClmmProtocol) FetchPoolByID(ctx context.Context, poolId string) 
 	if err != nil {
 		return nil, fmt.Errorf("invalid pool id: %w", err)
 	}
-	account, err := r.SolClient.RpcClient.GetAccountInfo(ctx, poolIdKey)
+	account, err := r.SolClient.GetAccountInfo(ctx, poolIdKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool account %s: %w", poolId, err)
 	}

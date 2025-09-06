@@ -21,6 +21,10 @@ func NewPumpAmm(solClient *sol.Client) *PumpAmmProtocol {
 	}
 }
 
+func (p *PumpAmmProtocol) ProtocolName() pkg.ProtocolName {
+	return pkg.ProtocolNamePumpAmm
+}
+
 func (p *PumpAmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint string, quoteMint string) ([]pkg.Pool, error) {
 	programAccounts := rpc.GetProgramAccountsResult{}
 	data, err := p.getPumpAMMPoolAccountsByTokenPair(ctx, baseMint, quoteMint)
@@ -57,7 +61,7 @@ func (p *PumpAmmProtocol) getPumpAMMPoolAccountsByTokenPair(ctx context.Context,
 		return nil, fmt.Errorf("invalid quote mint address: %w", err)
 	}
 
-	return p.SolClient.RpcClient.GetProgramAccountsWithOpts(ctx, pump.PumpSwapProgramID, &rpc.GetProgramAccountsOpts{
+	return p.SolClient.GetProgramAccountsWithOpts(ctx, pump.PumpSwapProgramID, &rpc.GetProgramAccountsOpts{
 		Filters: []rpc.RPCFilter{
 			{
 				DataSize: layout.Span(),
@@ -84,7 +88,7 @@ func (p *PumpAmmProtocol) FetchPoolByID(ctx context.Context, poolId string) (pkg
 		return nil, fmt.Errorf("invalid pool ID: %w", err)
 	}
 
-	account, err := p.SolClient.RpcClient.GetAccountInfo(ctx, poolPubkey)
+	account, err := p.SolClient.GetAccountInfo(ctx, poolPubkey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool account %s: %w", poolId, err)
 	}

@@ -23,6 +23,10 @@ func NewRaydiumCpmm(solClient *sol.Client) *RaydiumCpmmProtocol {
 	}
 }
 
+func (p *RaydiumCpmmProtocol) ProtocolName() pkg.ProtocolName {
+	return pkg.ProtocolNameRaydiumCpmm
+}
+
 // FetchPoolsByPair retrieves all pools for a given token pair
 func (p *RaydiumCpmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint string, quoteMint string) ([]pkg.Pool, error) {
 	// Fetch pools with baseMint as token0
@@ -92,7 +96,7 @@ func (p *RaydiumCpmmProtocol) getCPMMPoolAccountsByTokenPair(ctx context.Context
 		},
 	}
 
-	result, err := p.SolClient.RpcClient.GetProgramAccountsWithOpts(ctx, raydium.RAYDIUM_CPMM_PROGRAM_ID, &rpc.GetProgramAccountsOpts{
+	result, err := p.SolClient.GetProgramAccountsWithOpts(ctx, raydium.RAYDIUM_CPMM_PROGRAM_ID, &rpc.GetProgramAccountsOpts{
 		Filters: filters,
 	})
 	if err != nil {
@@ -104,7 +108,7 @@ func (p *RaydiumCpmmProtocol) getCPMMPoolAccountsByTokenPair(ctx context.Context
 
 // FetchPoolByID retrieves a CPMM pool by its ID
 func (p *RaydiumCpmmProtocol) FetchPoolByID(ctx context.Context, poolID string) (pkg.Pool, error) {
-	account, err := p.SolClient.RpcClient.GetAccountInfo(ctx, solana.MustPublicKeyFromBase58(poolID))
+	account, err := p.SolClient.GetAccountInfo(ctx, solana.MustPublicKeyFromBase58(poolID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool account %s: %w", poolID, err)
 	}

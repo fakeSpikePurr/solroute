@@ -11,6 +11,7 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingWOW/solroute/pkg"
+	"github.com/yimingWOW/solroute/pkg/sol"
 )
 
 // CPMMPool represents the on-chain pool state
@@ -56,10 +57,6 @@ func (pool *CPMMPool) ProtocolName() pkg.ProtocolName {
 	return pkg.ProtocolNameRaydiumCpmm
 }
 
-func (pool *CPMMPool) ProtocolType() pkg.ProtocolType {
-	return pkg.ProtocolTypeRaydiumCpmm
-}
-
 func (pool *CPMMPool) GetProgramID() solana.PublicKey {
 	return RAYDIUM_CPMM_PROGRAM_ID
 }
@@ -98,14 +95,13 @@ func (pool *CPMMPool) GetTokens() (string, string) {
 
 func (pool *CPMMPool) BuildSwapInstructions(
 	ctx context.Context,
-	solClient *rpc.Client,
+	solClient *sol.Client,
 	userAddr solana.PublicKey,
 	inputMint string,
 	amountIn math.Int,
 	minOutAmountWithDecimals math.Int,
 ) ([]solana.Instruction, error) {
 
-	// 初始化指令数组
 	instrs := []solana.Instruction{}
 
 	var inputValueMint solana.PublicKey
@@ -125,7 +121,6 @@ func (pool *CPMMPool) BuildSwapInstructions(
 		toAccount = pool.UserBaseAccount
 	}
 
-	// 创建 swap 指令
 	swapInst := CPMMSwapInstruction{
 		InAmount:         amountIn.Uint64(),
 		MinimumOutAmount: minOutAmountWithDecimals.Uint64(),
@@ -140,7 +135,6 @@ func (pool *CPMMPool) BuildSwapInstructions(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get authority PDA: %v", err)
 	}
-	// 设置账户
 	swapInst.AccountMetaSlice[0] = solana.NewAccountMeta(userAddr, true, true)                // payer
 	swapInst.AccountMetaSlice[1] = solana.NewAccountMeta(authority, false, false)             // authority
 	swapInst.AccountMetaSlice[2] = solana.NewAccountMeta(pool.AmmConfig, false, false)        // amm_config
@@ -203,7 +197,7 @@ func getAuthorityPDA() (solana.PublicKey, uint8, error) {
 	return authority, bump, nil
 }
 
-func (pool *CPMMPool) Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount math.Int) (math.Int, error) {
+func (pool *CPMMPool) Quote(ctx context.Context, solClient *sol.Client, inputMint string, inputAmount math.Int) (math.Int, error) {
 	// update pool data first
 	accounts := make([]solana.PublicKey, 0)
 	accounts = append(accounts, pool.Token0Vault)

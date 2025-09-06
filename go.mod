@@ -6,7 +6,9 @@ require (
 	cosmossdk.io/math v1.5.3
 	github.com/gagliardetto/binary v0.8.0
 	github.com/gagliardetto/solana-go v1.12.0
+	github.com/mr-tron/base58 v1.2.0
 	github.com/zeromicro/go-zero v1.9.0
+	golang.org/x/time v0.10.0
 	lukechampine.com/uint128 v1.3.0
 )
 
@@ -30,7 +32,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mostynb/zstdpool-freelist v0.0.0-20201229113212-927304c0c3b1 // indirect
-	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/streamingfast/logging v0.0.0-20230608130331-f22c91403091 // indirect
@@ -46,6 +47,5 @@ require (
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/term v0.33.0 // indirect
-	golang.org/x/time v0.10.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

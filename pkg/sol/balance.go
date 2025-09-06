@@ -11,7 +11,7 @@ import (
 )
 
 func (t *Client) GetUserTokenBalance(ctx context.Context, userAddr solana.PublicKey, tokenMint solana.PublicKey) (uint64, error) {
-	acc, err := t.RpcClient.GetTokenAccountsByOwner(ctx, userAddr,
+	acc, err := t.GetTokenAccountsByOwner(ctx, userAddr,
 		&rpc.GetTokenAccountsConfig{Mint: tokenMint.ToPointer()},
 		&rpc.GetTokenAccountsOpts{
 			Encoding: "jsonParsed",
@@ -24,7 +24,7 @@ func (t *Client) GetUserTokenBalance(ctx context.Context, userAddr solana.Public
 		return 0, errors.New("no token account found")
 	}
 
-	tokenAccount, err := t.RpcClient.GetTokenAccountBalance(ctx, acc.Value[0].Pubkey, rpc.CommitmentConfirmed)
+	tokenAccount, err := t.GetTokenAccountBalance(ctx, acc.Value[0].Pubkey, rpc.CommitmentConfirmed)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get token account balance: %v", err)
 	}

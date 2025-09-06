@@ -26,7 +26,7 @@ type Clock struct {
 // GetClock retrieves the current clock information from the Solana network
 func (c *Client) GetClock(ctx context.Context) (*Clock, error) {
 	// Fetch the clock account
-	resp, err := c.RpcClient.GetAccountInfo(ctx, solana.SysVarClockPubkey)
+	resp, err := c.GetAccountInfo(ctx, solana.SysVarClockPubkey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch clock account: %w", err)
 	}

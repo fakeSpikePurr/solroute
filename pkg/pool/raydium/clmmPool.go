@@ -16,6 +16,7 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingWOW/solroute/pkg"
+	"github.com/yimingWOW/solroute/pkg/sol"
 	"lukechampine.com/uint128"
 )
 
@@ -92,10 +93,6 @@ type RewardInfo struct {
 
 func (pool *CLMMPool) ProtocolName() pkg.ProtocolName {
 	return pkg.ProtocolNameRaydiumClmm
-}
-
-func (pool *CLMMPool) ProtocolType() pkg.ProtocolType {
-	return pkg.ProtocolTypeRaydiumClmm
 }
 
 func (pool *CLMMPool) GetProgramID() solana.PublicKey {
@@ -284,25 +281,21 @@ func (l *CLMMPool) Offset(field string) uint64 {
 }
 
 func (l *CLMMPool) CurrentPrice() float64 {
-	// 转换为 float64
 	sqrtPrice, _ := l.SqrtPriceX64.Big().Float64()
-	// Q64.64 格式转换
 	sqrtPrice = sqrtPrice / math.Pow(2, 64)
-	// 计算实际价格
 	price := sqrtPrice * sqrtPrice
 	return price
 }
 
 func (p *CLMMPool) BuildSwapInstructions(
 	ctx context.Context,
-	solClient *rpc.Client,
+	solClient *sol.Client,
 	userAddr solana.PublicKey,
 	inputMint string,
 	amountIn cosmath.Int,
 	minOutAmountWithDecimals cosmath.Int,
 ) ([]solana.Instruction, error) {
 
-	// 初始化指令数组和签名者
 	instrs := []solana.Instruction{}
 
 	var inputValueMint solana.PublicKey
@@ -449,7 +442,7 @@ func (pool *CLMMPool) GetTokens() (baseMint, quoteMint string) {
 	return pool.TokenMint0.String(), pool.TokenMint1.String()
 }
 
-func (pool *CLMMPool) Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
+func (pool *CLMMPool) Quote(ctx context.Context, solClient *sol.Client, inputMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
 	// update pool state first
 	results, err := solClient.GetMultipleAccountsWithOpts(ctx,
 		[]solana.PublicKey{pool.ExBitmapAddress},
@@ -701,7 +694,7 @@ func (pool *CLMMPool) swapCompute(
 // GetRemainAccounts returns the remaining accounts needed for the swap
 func (pool *CLMMPool) GetRemainAccounts(
 	ctx context.Context,
-	client *rpc.Client,
+	client *sol.Client,
 	inputTokenMint string,
 ) ([]solana.PublicKey, error) {
 	// Determine swap direction

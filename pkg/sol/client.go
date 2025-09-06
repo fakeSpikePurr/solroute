@@ -10,14 +10,16 @@ import (
 
 // Client represents a Solana client that handles both RPC and WebSocket connections
 type Client struct {
-	RpcClient *rpc.Client
-	WsClient  *ws.Client
+	rpcClient   *rpc.Client
+	wsClient    *ws.Client
+	rateLimiter *RateLimiter
 }
 
-// NewClient creates a new Solana client with both RPC and WebSocket connections
-func NewClient(ctx context.Context, endpoint, wsEndpoint string) (*Client, error) {
+// NewClient creates a new Solana client with custom rate limiting
+func NewClient(ctx context.Context, endpoint, wsEndpoint string, requestsPerSecond int) (*Client, error) {
 	c := &Client{
-		RpcClient: rpc.New(endpoint),
+		rpcClient:   rpc.New(endpoint),
+		rateLimiter: NewRateLimiter(requestsPerSecond),
 	}
 	if wsEndpoint != "" {
 		// Initialize WebSocket client
@@ -25,15 +27,15 @@ func NewClient(ctx context.Context, endpoint, wsEndpoint string) (*Client, error
 		if err != nil {
 			return nil, fmt.Errorf("failed to establish WebSocket connection: %w", err)
 		}
-		c.WsClient = wsClient
+		c.wsClient = wsClient
 	}
 	return c, nil
 }
 
 // Close terminates all client connections
 func (c *Client) Close() error {
-	if c.WsClient != nil {
-		c.WsClient.Close()
+	if c.wsClient != nil {
+		c.wsClient.Close()
 	}
 	return nil
 }

@@ -11,7 +11,7 @@ import (
 
 func (t *Client) SelectOrCreateSPLTokenAccount(ctx context.Context, privateKey solana.PrivateKey, tokenMint solana.PublicKey) (solana.PublicKey, error) {
 	user := privateKey.PublicKey()
-	acc, err := t.RpcClient.GetTokenAccountsByOwner(ctx, user,
+	acc, err := t.GetTokenAccountsByOwner(ctx, user,
 		&rpc.GetTokenAccountsConfig{Mint: tokenMint.ToPointer()},
 		&rpc.GetTokenAccountsOpts{
 			Encoding: "jsonParsed",
@@ -45,13 +45,8 @@ func (t *Client) SelectOrCreateSPLTokenAccount(ctx context.Context, privateKey s
 	if len(instructions) == 0 {
 		return ataAddress, nil
 	} else {
-		latestBlockhash, err := t.RpcClient.GetLatestBlockhash(ctx, rpc.CommitmentConfirmed)
-		if err != nil {
-			log.Printf("Failed to get latest blockhash: %v", err)
-			return solana.PublicKey{}, err
-		}
 		signers := []solana.PrivateKey{privateKey}
-		_, err = t.SendTx(ctx, latestBlockhash.Value.Blockhash, signers, instructions, false)
+		_, err = t.SendTx(ctx, signers, instructions, false)
 		if err != nil {
 			log.Printf("Failed to send transaction: %v", err)
 			return solana.PublicKey{}, err

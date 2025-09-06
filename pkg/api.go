@@ -5,7 +5,7 @@ import (
 
 	"cosmossdk.io/math"
 	"github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/rpc"
+	"github.com/yimingWOW/solroute/pkg/sol"
 )
 
 // ProtocolName represents the string name of AMM protocol
@@ -19,27 +19,15 @@ const (
 	ProtocolNamePumpAmm     ProtocolName = "pump_amm"
 )
 
-// ProtocolType represents the numeric type of AMM protocol (matches contract enum)
-type ProtocolType uint8
-
-const (
-	ProtocolTypeRaydiumAmm ProtocolType = iota
-	ProtocolTypeRaydiumClmm
-	ProtocolTypeRaydiumCpmm
-	ProtocolTypeMeteoraDlmm
-	ProtocolTypePumpAmm
-)
-
 type Pool interface {
 	ProtocolName() ProtocolName
-	ProtocolType() ProtocolType
 	GetProgramID() solana.PublicKey
 	GetID() string
 	GetTokens() (baseMint, quoteMint string)
-	Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount math.Int) (math.Int, error)
+	Quote(ctx context.Context, solClient *sol.Client, inputMint string, inputAmount math.Int) (math.Int, error)
 	BuildSwapInstructions(
 		ctx context.Context,
-		solClient *rpc.Client,
+		solClient *sol.Client,
 		user solana.PublicKey,
 		inputMint string,
 		inputAmount math.Int,
@@ -48,6 +36,7 @@ type Pool interface {
 }
 
 type Protocol interface {
+	ProtocolName() ProtocolName
 	FetchPoolsByPair(ctx context.Context, baseMint, quoteMint string) ([]Pool, error)
 	FetchPoolByID(ctx context.Context, poolID string) (Pool, error)
 }

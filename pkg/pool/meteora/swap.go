@@ -9,13 +9,13 @@ import (
 	"cosmossdk.io/math"
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/rpc"
+	"github.com/yimingWOW/solroute/pkg/sol"
 )
 
 // BuildSwapInstructions creates Solana instructions for performing a swap operation
 func (pool *MeteoraDlmmPool) BuildSwapInstructions(
 	ctx context.Context,
-	solClient *rpc.Client,
+	solClient *sol.Client,
 	user solana.PublicKey,
 	inputMint string,
 	inputAmount math.Int,

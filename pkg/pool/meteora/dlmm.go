@@ -96,10 +96,6 @@ func (pool *MeteoraDlmmPool) ProtocolName() pkg.ProtocolName {
 	return pkg.ProtocolNameMeteoraDlmm
 }
 
-func (pool *MeteoraDlmmPool) ProtocolType() pkg.ProtocolType {
-	return pkg.ProtocolTypeMeteoraDlmm
-}
-
 func (pool *MeteoraDlmmPool) GetProgramID() solana.PublicKey {
 	return MeteoraProgramID
 }
@@ -412,7 +408,7 @@ func (pool *MeteoraDlmmPool) GetBinArrayForSwap(ctx context.Context, client *sol
 	activeBinArrayPubkeys = append(activeBinArrayPubkeys, negativeOrderActiveBinArrayPubkeys...)
 
 	// Fetch all bin array accounts in batch
-	results, err := client.RpcClient.GetMultipleAccounts(ctx, activeBinArrayPubkeys...)
+	results, err := client.GetMultipleAccounts(ctx, activeBinArrayPubkeys)
 	if err != nil {
 		return fmt.Errorf("batch request failed: %w", err)
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingWOW/solroute/pkg"
 	"github.com/yimingWOW/solroute/pkg/anchor"
+	"github.com/yimingWOW/solroute/pkg/sol"
 )
 
 const (
@@ -54,10 +55,6 @@ type PumpAMMPool struct {
 
 func (pool *PumpAMMPool) ProtocolName() pkg.ProtocolName {
 	return pkg.ProtocolNamePumpAmm
-}
-
-func (pool *PumpAMMPool) ProtocolType() pkg.ProtocolType {
-	return pkg.ProtocolTypePumpAmm
 }
 
 func (pool *PumpAMMPool) GetProgramID() solana.PublicKey {
@@ -137,7 +134,7 @@ func (l *PumpAMMPool) GetTokens() (string, string) {
 
 func (s *PumpAMMPool) BuildSwapInstructions(
 	ctx context.Context,
-	solClient *rpc.Client,
+	solClient *sol.Client,
 	user solana.PublicKey,
 	inputMint string,
 	inputAmount math.Int,
@@ -220,7 +217,6 @@ func (s *PumpAMMPool) sellInAMMPool(userAddr solana.PublicKey,
 	inst.BaseVariant = bin.BaseVariant{
 		Impl: inst,
 	}
-	// 确保使用正确的 Token Program 地址
 	inst.AccountMetaSlice[0] = solana.NewAccountMeta(pool.PoolId, false, false)
 	inst.AccountMetaSlice[1] = solana.NewAccountMeta(userAddr, true, true)
 	inst.AccountMetaSlice[2] = solana.NewAccountMeta(PumpGlobalConfig, false, false)
@@ -312,7 +308,6 @@ func (inst *SellSwapInstruction) Accounts() (out []*solana.AccountMeta) {
 
 func (inst *SellSwapInstruction) Data() ([]byte, error) {
 
-	// 手动构建指令数据
 	buf := new(bytes.Buffer)
 
 	// Write discriminator for swap instruction
@@ -336,7 +331,7 @@ func (inst *SellSwapInstruction) Data() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (pool *PumpAMMPool) Quote(ctx context.Context, solClient *rpc.Client, inputMint string, inputAmount math.Int) (math.Int, error) {
+func (pool *PumpAMMPool) Quote(ctx context.Context, solClient *sol.Client, inputMint string, inputAmount math.Int) (math.Int, error) {
 	// update pool data first
 	accounts := make([]solana.PublicKey, 0)
 	accounts = append(accounts, pool.PoolBaseTokenAccount)
