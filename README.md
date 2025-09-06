@@ -61,6 +61,16 @@ solroute/
 │   └── sol/         # Solana client
 ```
 
+## Some useful func
+
+This section highlights essential utility functions that can help streamline your development workflow:
+
+- pkg/anchor/anchor.go GetDiscriminator
+- pkg/sol/wsol_account.go CoverWsol CloseWsol
+- utils/beautiful_address.go FindKeyPairWithPrefix FindKeyPairWithSuffix
+
+
+
 ## Contribution
 
 Contributed by [yimingWOW](https://github.com/yimingWOW) from [Solar](https://www.solar.team/).
