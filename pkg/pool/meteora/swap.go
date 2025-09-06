@@ -20,17 +20,19 @@ func (pool *MeteoraDlmmPool) BuildSwapInstructions(
 	inputMint string,
 	inputAmount math.Int,
 	minOut math.Int,
+	userBaseAccount solana.PublicKey,
+	userQuoteAccount solana.PublicKey,
 ) ([]solana.Instruction, error) {
 	instructions := []solana.Instruction{}
 
-	var userQuoteAccount solana.PublicKey
-	var userBaseAccount solana.PublicKey
+	var userInTokenAccount solana.PublicKey
+	var userOutTokenAccount solana.PublicKey
 	if inputMint == pool.TokenXMint.String() {
-		userBaseAccount = pool.UserBaseAccount
-		userQuoteAccount = pool.UserQuoteAccount
+		userOutTokenAccount = userBaseAccount
+		userInTokenAccount = userQuoteAccount
 	} else {
-		userBaseAccount = pool.UserQuoteAccount
-		userQuoteAccount = pool.UserBaseAccount
+		userOutTokenAccount = userQuoteAccount
+		userInTokenAccount = userBaseAccount
 	}
 
 	instruction := SwapInstruction{
@@ -63,8 +65,8 @@ func (pool *MeteoraDlmmPool) BuildSwapInstructions(
 	}
 	instruction.AccountMetaSlice[2] = solana.NewAccountMeta(pool.reserveX, true, false)
 	instruction.AccountMetaSlice[3] = solana.NewAccountMeta(pool.reserveY, true, false)
-	instruction.AccountMetaSlice[4] = solana.NewAccountMeta(userBaseAccount, true, false)
-	instruction.AccountMetaSlice[5] = solana.NewAccountMeta(userQuoteAccount, true, false)
+	instruction.AccountMetaSlice[4] = solana.NewAccountMeta(userOutTokenAccount, true, false)
+	instruction.AccountMetaSlice[5] = solana.NewAccountMeta(userInTokenAccount, true, false)
 	instruction.AccountMetaSlice[6] = solana.NewAccountMeta(pool.TokenXMint, false, false)
 	instruction.AccountMetaSlice[7] = solana.NewAccountMeta(pool.TokenYMint, false, false)
 	instruction.AccountMetaSlice[8] = solana.NewAccountMeta(pool.oracle, true, false)

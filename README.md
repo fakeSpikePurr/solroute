@@ -67,6 +67,7 @@ This section highlights essential utility functions that can help streamline you
 
 - pkg/anchor/anchor.go GetDiscriminator
 - pkg/sol/wsol_account.go CoverWsol CloseWsol
+- pkg/sol/jito.go golang sdk of Jito
 - utils/beautiful_address.go FindKeyPairWithPrefix FindKeyPairWithSuffix
 
 

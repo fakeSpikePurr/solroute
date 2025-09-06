@@ -32,6 +32,8 @@ type Pool interface {
 		inputMint string,
 		inputAmount math.Int,
 		minOut math.Int,
+		userBaseAccount solana.PublicKey,
+		userQuoteAccount solana.PublicKey,
 	) ([]solana.Instruction, error)
 }
 

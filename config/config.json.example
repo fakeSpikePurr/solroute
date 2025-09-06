@@ -2,4 +2,5 @@
     "privateKey": "",
     "rpc": "",
     "wsRpc": ""
+    "jitoRpc": "https://ny.mainnet.block-engine.jito.wtf/api/v1" 
 }

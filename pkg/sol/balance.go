@@ -10,7 +10,7 @@ import (
 	"github.com/gagliardetto/solana-go/rpc"
 )
 
-func (t *Client) GetUserTokenBalance(ctx context.Context, userAddr solana.PublicKey, tokenMint solana.PublicKey) (uint64, error) {
+func (t *Client) GetUserTokenBalance(ctx context.Context, userAddr solana.PublicKey, tokenMint solana.PublicKey) (solana.PublicKey, uint64, error) {
 	acc, err := t.GetTokenAccountsByOwner(ctx, userAddr,
 		&rpc.GetTokenAccountsConfig{Mint: tokenMint.ToPointer()},
 		&rpc.GetTokenAccountsOpts{
@@ -18,20 +18,20 @@ func (t *Client) GetUserTokenBalance(ctx context.Context, userAddr solana.Public
 		},
 	)
 	if err != nil {
-		return 0, err
+		return solana.PublicKey{}, 0, err
 	}
 	if len(acc.Value) == 0 {
-		return 0, errors.New("no token account found")
+		return solana.PublicKey{}, 0, errors.New("no token account found")
 	}
 
 	tokenAccount, err := t.GetTokenAccountBalance(ctx, acc.Value[0].Pubkey, rpc.CommitmentConfirmed)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get token account balance: %v", err)
+		return solana.PublicKey{}, 0, fmt.Errorf("failed to get token account balance: %v", err)
 	}
 	tokenAmt, err := strconv.ParseUint(tokenAccount.Value.Amount, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("failed to parse token amount: %w", err)
+		return solana.PublicKey{}, 0, fmt.Errorf("failed to parse token amount: %w", err)
 	}
 
-	return tokenAmt, nil
+	return acc.Value[0].Pubkey, tokenAmt, nil
 }

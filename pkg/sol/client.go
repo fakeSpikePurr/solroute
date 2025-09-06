@@ -12,14 +12,15 @@ import (
 type Client struct {
 	rpcClient   *rpc.Client
 	wsClient    *ws.Client
+	jitoClient  *JitoClient
 	rateLimiter *RateLimiter
 }
 
 // NewClient creates a new Solana client with custom rate limiting
-func NewClient(ctx context.Context, endpoint, wsEndpoint string, requestsPerSecond int) (*Client, error) {
+func NewClient(ctx context.Context, endpoint, wsEndpoint, jitoEndpoint string, reqLimitPerSecond int) (*Client, error) {
 	c := &Client{
 		rpcClient:   rpc.New(endpoint),
-		rateLimiter: NewRateLimiter(requestsPerSecond),
+		rateLimiter: NewRateLimiter(reqLimitPerSecond),
 	}
 	if wsEndpoint != "" {
 		// Initialize WebSocket client
@@ -28,6 +29,13 @@ func NewClient(ctx context.Context, endpoint, wsEndpoint string, requestsPerSeco
 			return nil, fmt.Errorf("failed to establish WebSocket connection: %w", err)
 		}
 		c.wsClient = wsClient
+	}
+	if jitoEndpoint != "" {
+		jitoClient, err := NewJitoClient(ctx, jitoEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Jito client: %w", err)
+		}
+		c.jitoClient = jitoClient
 	}
 	return c, nil
 }

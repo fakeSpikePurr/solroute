@@ -46,7 +46,12 @@ func (t *Client) SelectOrCreateSPLTokenAccount(ctx context.Context, privateKey s
 		return ataAddress, nil
 	} else {
 		signers := []solana.PrivateKey{privateKey}
-		_, err = t.SendTx(ctx, signers, instructions, false)
+		tx, err := t.SignTransaction(ctx, signers, instructions...)
+		if err != nil {
+			log.Printf("Failed to sign transaction: %v", err)
+			return solana.PublicKey{}, err
+		}
+		_, err = t.SendTx(ctx, tx)
 		if err != nil {
 			log.Printf("Failed to send transaction: %v", err)
 			return solana.PublicKey{}, err

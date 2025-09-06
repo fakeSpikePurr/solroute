@@ -95,12 +95,10 @@ type AMMPool struct {
 	MarketEventQueue solana.PublicKey
 
 	// Pool balances
-	BaseAmount       cosmath.Int
-	QuoteAmount      cosmath.Int
-	BaseReserve      cosmath.Int
-	QuoteReserve     cosmath.Int
-	UserBaseAccount  solana.PublicKey
-	UserQuoteAccount solana.PublicKey
+	BaseAmount   cosmath.Int
+	QuoteAmount  cosmath.Int
+	BaseReserve  cosmath.Int
+	QuoteReserve cosmath.Int
 }
 
 func (pool *AMMPool) ProtocolName() pkg.ProtocolName {
@@ -410,6 +408,8 @@ func (pool *AMMPool) BuildSwapInstructions(
 	inputMint string,
 	inputAmount cosmath.Int,
 	minOut cosmath.Int,
+	userBaseAccount solana.PublicKey,
+	userQuoteAccount solana.PublicKey,
 ) ([]solana.Instruction, error) {
 	instrs := []solana.Instruction{}
 
@@ -424,11 +424,11 @@ func (pool *AMMPool) BuildSwapInstructions(
 	// Set up source and destination accounts based on swap direction
 	var fromAccount, toAccount solana.PublicKey
 	if inputValueMint.String() == pool.BaseMint.String() {
-		fromAccount = pool.UserBaseAccount
-		toAccount = pool.UserQuoteAccount
+		fromAccount = userBaseAccount
+		toAccount = userQuoteAccount
 	} else {
-		fromAccount = pool.UserQuoteAccount
-		toAccount = pool.UserBaseAccount
+		fromAccount = userQuoteAccount
+		toAccount = userBaseAccount
 	}
 
 	// Create swap instruction

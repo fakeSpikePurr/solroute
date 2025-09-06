@@ -66,7 +66,12 @@ func (t *Client) CoverWsol(ctx context.Context, privateKey solana.PrivateKey, am
 	}
 	allInstrs = append(allInstrs, syncNativeInst)
 
-	_, err = t.SendTx(ctx, signers, allInstrs, false)
+	tx, err := t.SignTransaction(ctx, signers, allInstrs...)
+	if err != nil {
+		log.Printf("Failed to sign transaction: %v", err)
+		return err
+	}
+	_, err = t.SendTx(ctx, tx)
 	if err != nil {
 		log.Printf("Failed to send transaction: %v\n", err)
 		return err
@@ -96,7 +101,12 @@ func (t *Client) CloseWsol(ctx context.Context, privateKey solana.PrivateKey) er
 		return err
 	}
 	insts = append(insts, closeInst)
-	_, err = t.SendTx(ctx, signers, insts, false)
+	tx, err := t.SignTransaction(ctx, signers, insts...)
+	if err != nil {
+		log.Printf("Failed to sign transaction: %v", err)
+		return err
+	}
+	_, err = t.SendTx(ctx, tx)
 	if err != nil {
 		log.Printf("Failed to send transaction: %v\n", err)
 		return err

@@ -46,11 +46,9 @@ type PumpAMMPool struct {
 	LpSupply              uint64
 	CoinCreator           solana.PublicKey
 
-	PoolId           solana.PublicKey
-	BaseAmount       math.Int
-	QuoteAmount      math.Int
-	UserBaseAccount  solana.PublicKey
-	UserQuoteAccount solana.PublicKey
+	PoolId      solana.PublicKey
+	BaseAmount  math.Int
+	QuoteAmount math.Int
 }
 
 func (pool *PumpAMMPool) ProtocolName() pkg.ProtocolName {
@@ -139,16 +137,24 @@ func (s *PumpAMMPool) BuildSwapInstructions(
 	inputMint string,
 	inputAmount math.Int,
 	minOut math.Int,
+	userBaseAccount solana.PublicKey,
+	userQuoteAccount solana.PublicKey,
 ) ([]solana.Instruction, error) {
 	if inputMint == s.BaseMint.String() {
-		return s.buyInAMMPool(user, s, inputAmount, minOut)
+		return s.buyInAMMPool(user, s, inputAmount, minOut, userBaseAccount, userQuoteAccount)
 	} else {
-		return s.sellInAMMPool(user, s, inputAmount, minOut)
+		return s.sellInAMMPool(user, s, inputAmount, minOut, userBaseAccount, userQuoteAccount)
 	}
 }
 
-func (s *PumpAMMPool) buyInAMMPool(userAddr solana.PublicKey, pool *PumpAMMPool,
-	maxInputAmountWithDecimals math.Int, outAmountWithDecimals math.Int) ([]solana.Instruction, error) {
+func (s *PumpAMMPool) buyInAMMPool(
+	userAddr solana.PublicKey,
+	pool *PumpAMMPool,
+	maxInputAmountWithDecimals math.Int,
+	outAmountWithDecimals math.Int,
+	userBaseAccount solana.PublicKey,
+	userQuoteAccount solana.PublicKey,
+) ([]solana.Instruction, error) {
 	// Initialize instruction array
 	instrs := []solana.Instruction{}
 
@@ -171,8 +177,8 @@ func (s *PumpAMMPool) buyInAMMPool(userAddr solana.PublicKey, pool *PumpAMMPool,
 	inst.AccountMetaSlice[2] = solana.NewAccountMeta(PumpGlobalConfig, false, false)
 	inst.AccountMetaSlice[3] = solana.NewAccountMeta(pool.BaseMint, false, false)
 	inst.AccountMetaSlice[4] = solana.NewAccountMeta(pool.QuoteMint, false, false)
-	inst.AccountMetaSlice[5] = solana.NewAccountMeta(pool.UserBaseAccount, true, false)
-	inst.AccountMetaSlice[6] = solana.NewAccountMeta(pool.UserQuoteAccount, true, false)
+	inst.AccountMetaSlice[5] = solana.NewAccountMeta(userBaseAccount, true, false)
+	inst.AccountMetaSlice[6] = solana.NewAccountMeta(userQuoteAccount, true, false)
 	inst.AccountMetaSlice[7] = solana.NewAccountMeta(pool.PoolBaseTokenAccount, true, false)
 	inst.AccountMetaSlice[8] = solana.NewAccountMeta(pool.PoolQuoteTokenAccount, true, false)
 	inst.AccountMetaSlice[9] = solana.NewAccountMeta(PumpProtocolFeeRecipient, false, false)
@@ -201,8 +207,14 @@ func (s *PumpAMMPool) buyInAMMPool(userAddr solana.PublicKey, pool *PumpAMMPool,
 	return instrs, nil
 }
 
-func (s *PumpAMMPool) sellInAMMPool(userAddr solana.PublicKey,
-	pool *PumpAMMPool, baseAmountIn math.Int, minQuoteAmountOut math.Int) ([]solana.Instruction, error) {
+func (s *PumpAMMPool) sellInAMMPool(
+	userAddr solana.PublicKey,
+	pool *PumpAMMPool,
+	baseAmountIn math.Int,
+	minQuoteAmountOut math.Int,
+	userBaseAccount solana.PublicKey,
+	userQuoteAccount solana.PublicKey,
+) ([]solana.Instruction, error) {
 	instrs := []solana.Instruction{}
 
 	inst := SellSwapInstruction{
@@ -222,8 +234,8 @@ func (s *PumpAMMPool) sellInAMMPool(userAddr solana.PublicKey,
 	inst.AccountMetaSlice[2] = solana.NewAccountMeta(PumpGlobalConfig, false, false)
 	inst.AccountMetaSlice[3] = solana.NewAccountMeta(pool.BaseMint, false, false)
 	inst.AccountMetaSlice[4] = solana.NewAccountMeta(pool.QuoteMint, false, false)
-	inst.AccountMetaSlice[5] = solana.NewAccountMeta(pool.UserBaseAccount, true, false)
-	inst.AccountMetaSlice[6] = solana.NewAccountMeta(pool.UserQuoteAccount, true, false)
+	inst.AccountMetaSlice[5] = solana.NewAccountMeta(userBaseAccount, true, false)
+	inst.AccountMetaSlice[6] = solana.NewAccountMeta(userQuoteAccount, true, false)
 	inst.AccountMetaSlice[7] = solana.NewAccountMeta(pool.PoolBaseTokenAccount, true, false)
 	inst.AccountMetaSlice[8] = solana.NewAccountMeta(pool.PoolQuoteTokenAccount, true, false)
 	inst.AccountMetaSlice[9] = solana.NewAccountMeta(PumpProtocolFeeRecipient, false, false)

@@ -41,8 +41,6 @@ type CPMMPool struct {
 	_padding2          [32]uint64       // 256 bytes padding
 
 	PoolId           solana.PublicKey
-	UserBaseAccount  solana.PublicKey
-	UserQuoteAccount solana.PublicKey
 	BaseAmount       cosmath.Int
 	QuoteAmount      cosmath.Int
 	BaseReserve      cosmath.Int
@@ -100,6 +98,8 @@ func (pool *CPMMPool) BuildSwapInstructions(
 	inputMint string,
 	amountIn math.Int,
 	minOutAmountWithDecimals math.Int,
+	userBaseAccount solana.PublicKey,
+	userQuoteAccount solana.PublicKey,
 ) ([]solana.Instruction, error) {
 
 	instrs := []solana.Instruction{}
@@ -114,11 +114,11 @@ func (pool *CPMMPool) BuildSwapInstructions(
 	var fromAccount solana.PublicKey
 	var toAccount solana.PublicKey
 	if inputValueMint.String() == pool.Token0Mint.String() {
-		fromAccount = pool.UserBaseAccount
-		toAccount = pool.UserQuoteAccount
+		fromAccount = userBaseAccount
+		toAccount = userQuoteAccount
 	} else {
-		fromAccount = pool.UserQuoteAccount
-		toAccount = pool.UserBaseAccount
+		fromAccount = userQuoteAccount
+		toAccount = userBaseAccount
 	}
 
 	swapInst := CPMMSwapInstruction{

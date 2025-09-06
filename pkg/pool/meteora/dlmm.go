@@ -88,8 +88,6 @@ type MeteoraDlmmPool struct {
 	bitmapExtension    *BinArrayBitmapExtension
 	Clock              sol.Clock
 	orgActiveId        int32
-	UserBaseAccount    solana.PublicKey
-	UserQuoteAccount   solana.PublicKey
 }
 
 func (pool *MeteoraDlmmPool) ProtocolName() pkg.ProtocolName {

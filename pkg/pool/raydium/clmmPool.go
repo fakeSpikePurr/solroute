@@ -73,8 +73,6 @@ type CLMMPool struct {
 	ExBitmapAddress   solana.PublicKey
 	exTickArrayBitmap *TickArrayBitmapExtensionType
 	TickArrayCache    map[string]TickArray
-	UserBaseAccount   solana.PublicKey
-	UserQuoteAccount  solana.PublicKey
 }
 
 type RewardInfo struct {
@@ -294,6 +292,8 @@ func (p *CLMMPool) BuildSwapInstructions(
 	inputMint string,
 	amountIn cosmath.Int,
 	minOutAmountWithDecimals cosmath.Int,
+	userBaseAccount solana.PublicKey,
+	userQuoteAccount solana.PublicKey,
 ) ([]solana.Instruction, error) {
 
 	instrs := []solana.Instruction{}
@@ -318,11 +318,11 @@ func (p *CLMMPool) BuildSwapInstructions(
 	var fromAccount solana.PublicKey
 	var toAccount solana.PublicKey
 	if inputValueMint.String() == p.TokenMint0.String() {
-		fromAccount = p.UserBaseAccount
-		toAccount = p.UserQuoteAccount
+		fromAccount = userBaseAccount
+		toAccount = userQuoteAccount
 	} else {
-		fromAccount = p.UserQuoteAccount
-		toAccount = p.UserBaseAccount
+		fromAccount = userQuoteAccount
+		toAccount = userBaseAccount
 	}
 
 	inst := RayCLMMSwapInstruction{
