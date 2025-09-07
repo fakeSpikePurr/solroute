@@ -111,16 +111,6 @@ func (pool *CPMMPool) BuildSwapInstructions(
 		inputValueMint = pool.Token1Mint
 	}
 
-	var fromAccount solana.PublicKey
-	var toAccount solana.PublicKey
-	if inputValueMint.String() == pool.Token0Mint.String() {
-		fromAccount = userBaseAccount
-		toAccount = userQuoteAccount
-	} else {
-		fromAccount = userQuoteAccount
-		toAccount = userBaseAccount
-	}
-
 	swapInst := CPMMSwapInstruction{
 		InAmount:         amountIn.Uint64(),
 		MinimumOutAmount: minOutAmountWithDecimals.Uint64(),
@@ -135,18 +125,29 @@ func (pool *CPMMPool) BuildSwapInstructions(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get authority PDA: %v", err)
 	}
-	swapInst.AccountMetaSlice[0] = solana.NewAccountMeta(userAddr, true, true)                // payer
-	swapInst.AccountMetaSlice[1] = solana.NewAccountMeta(authority, false, false)             // authority
-	swapInst.AccountMetaSlice[2] = solana.NewAccountMeta(pool.AmmConfig, false, false)        // amm_config
-	swapInst.AccountMetaSlice[3] = solana.NewAccountMeta(pool.PoolId, true, false)            // pool_state
-	swapInst.AccountMetaSlice[4] = solana.NewAccountMeta(fromAccount, true, false)            // input_token_account
-	swapInst.AccountMetaSlice[5] = solana.NewAccountMeta(toAccount, true, false)              // output_token_account
-	swapInst.AccountMetaSlice[6] = solana.NewAccountMeta(pool.Token0Vault, true, false)       // input_vault
-	swapInst.AccountMetaSlice[7] = solana.NewAccountMeta(pool.Token1Vault, true, false)       // output_vault
+	swapInst.AccountMetaSlice[0] = solana.NewAccountMeta(userAddr, true, true)         // payer
+	swapInst.AccountMetaSlice[1] = solana.NewAccountMeta(authority, false, false)      // authority
+	swapInst.AccountMetaSlice[2] = solana.NewAccountMeta(pool.AmmConfig, false, false) // amm_config
+	swapInst.AccountMetaSlice[3] = solana.NewAccountMeta(pool.PoolId, true, false)     // pool_state
+	if inputValueMint.String() == pool.Token0Mint.String() {
+		swapInst.AccountMetaSlice[4] = solana.NewAccountMeta(userBaseAccount, true, false)   // input_token_account
+		swapInst.AccountMetaSlice[5] = solana.NewAccountMeta(userQuoteAccount, true, false)  // output_token_account
+		swapInst.AccountMetaSlice[6] = solana.NewAccountMeta(pool.Token0Vault, true, false)  // input_vault
+		swapInst.AccountMetaSlice[7] = solana.NewAccountMeta(pool.Token1Vault, true, false)  // output_vault
+		swapInst.AccountMetaSlice[10] = solana.NewAccountMeta(pool.Token0Mint, false, false) // input_token_mint
+		swapInst.AccountMetaSlice[11] = solana.NewAccountMeta(pool.Token1Mint, false, false) // output_token_mint
+
+	} else {
+		swapInst.AccountMetaSlice[4] = solana.NewAccountMeta(userQuoteAccount, true, false)  // input_token_account
+		swapInst.AccountMetaSlice[5] = solana.NewAccountMeta(userBaseAccount, true, false)   // output_token_account
+		swapInst.AccountMetaSlice[6] = solana.NewAccountMeta(pool.Token1Vault, true, false)  // input_vault
+		swapInst.AccountMetaSlice[7] = solana.NewAccountMeta(pool.Token0Vault, true, false)  // output_vault
+		swapInst.AccountMetaSlice[10] = solana.NewAccountMeta(pool.Token1Mint, false, false) // input_token_mint
+		swapInst.AccountMetaSlice[11] = solana.NewAccountMeta(pool.Token0Mint, false, false) // output_token_mint
+
+	}
 	swapInst.AccountMetaSlice[8] = solana.NewAccountMeta(solana.TokenProgramID, false, false) // input_token_program
 	swapInst.AccountMetaSlice[9] = solana.NewAccountMeta(solana.TokenProgramID, false, false) // output_token_program
-	swapInst.AccountMetaSlice[10] = solana.NewAccountMeta(pool.Token0Mint, false, false)      // input_token_mint
-	swapInst.AccountMetaSlice[11] = solana.NewAccountMeta(pool.Token1Mint, false, false)      // output_token_mint
 	swapInst.AccountMetaSlice[12] = solana.NewAccountMeta(pool.ObservationKey, true, false)   // observation_state
 	instrs = append(instrs, &swapInst)
 

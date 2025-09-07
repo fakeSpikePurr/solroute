@@ -300,29 +300,14 @@ func (p *CLMMPool) BuildSwapInstructions(
 
 	var inputValueMint solana.PublicKey
 	var outputValueMint solana.PublicKey
-	var inputValue solana.PublicKey
-	var outputValue solana.PublicKey
 	if inputMint == p.TokenMint0.String() {
+		log.Printf("inputMint: %v, p.TokenMint0: %v", inputMint, p.TokenMint0.String())
 		inputValueMint = p.TokenMint0
 		outputValueMint = p.TokenMint1
-		inputValue = p.TokenVault0
-		outputValue = p.TokenVault1
 	} else {
+		log.Printf("inputMint: %v, p.TokenMint1: %v", inputMint, p.TokenMint1.String())
 		inputValueMint = p.TokenMint1
 		outputValueMint = p.TokenMint0
-		inputValue = p.TokenVault1
-		outputValue = p.TokenVault0
-	}
-
-	// Create toAccount if needed
-	var fromAccount solana.PublicKey
-	var toAccount solana.PublicKey
-	if inputValueMint.String() == p.TokenMint0.String() {
-		fromAccount = userBaseAccount
-		toAccount = userQuoteAccount
-	} else {
-		fromAccount = userQuoteAccount
-		toAccount = userBaseAccount
 	}
 
 	inst := RayCLMMSwapInstruction{
@@ -330,28 +315,34 @@ func (p *CLMMPool) BuildSwapInstructions(
 		OtherAmountThreshold: minOutAmountWithDecimals.Uint64(),
 		SqrtPriceLimitX64:    uint128.Zero,
 		IsBaseInput:          inputValueMint == p.TokenMint0,
-		AccountMetaSlice:     make(solana.AccountMetaSlice, 0),
+		AccountMetaSlice:     make(solana.AccountMetaSlice, 16),
 	}
 	inst.BaseVariant = bin.BaseVariant{
 		Impl: inst,
 	}
 
 	// Set up account metas in the correct order according to SDK
-	inst.AccountMetaSlice = append(inst.AccountMetaSlice,
-		solana.NewAccountMeta(userAddr, false, true),               // payer (is_signer = true, is_writable = false)
-		solana.NewAccountMeta(p.AmmConfig, false, false),           // ammConfigId
-		solana.NewAccountMeta(p.PoolId, true, false),               // poolId
-		solana.NewAccountMeta(fromAccount, true, false),            // inputTokenAccount (is_writable = true, is_signer = false)
-		solana.NewAccountMeta(toAccount, true, false),              // outputTokenAccount (is_writable = true, is_signer = false)
-		solana.NewAccountMeta(inputValue, true, false),             // inputVault
-		solana.NewAccountMeta(outputValue, true, false),            // outputVault
-		solana.NewAccountMeta(p.ObservationKey, true, false),       // observationId
-		solana.NewAccountMeta(solana.TokenProgramID, false, false), // TOKEN_PROGRAM_ID
-		solana.NewAccountMeta(TOKEN_2022_PROGRAM_ID, false, false), // TOKEN_2022_PROGRAM_ID
-		solana.NewAccountMeta(MEMO_PROGRAM_ID, false, false),       // MEMO_PROGRAM_ID
-		solana.NewAccountMeta(inputValueMint, false, false),        // inputMint
-		solana.NewAccountMeta(outputValueMint, false, false),       // inputMint
-	)
+	inst.AccountMetaSlice[0] = solana.NewAccountMeta(userAddr, false, true)
+	inst.AccountMetaSlice[1] = solana.NewAccountMeta(p.AmmConfig, false, false)
+	inst.AccountMetaSlice[2] = solana.NewAccountMeta(p.PoolId, true, false)
+
+	if inputMint == p.TokenMint0.String() {
+		inst.AccountMetaSlice[3] = solana.NewAccountMeta(userBaseAccount, true, false)
+		inst.AccountMetaSlice[4] = solana.NewAccountMeta(userQuoteAccount, true, false)
+		inst.AccountMetaSlice[5] = solana.NewAccountMeta(p.TokenVault0, true, false)
+		inst.AccountMetaSlice[6] = solana.NewAccountMeta(p.TokenVault1, true, false)
+	} else {
+		inst.AccountMetaSlice[3] = solana.NewAccountMeta(userQuoteAccount, true, false)
+		inst.AccountMetaSlice[4] = solana.NewAccountMeta(userBaseAccount, true, false)
+		inst.AccountMetaSlice[5] = solana.NewAccountMeta(p.TokenVault1, true, false)
+		inst.AccountMetaSlice[6] = solana.NewAccountMeta(p.TokenVault0, true, false)
+	}
+	inst.AccountMetaSlice[7] = solana.NewAccountMeta(p.ObservationKey, true, false)
+	inst.AccountMetaSlice[8] = solana.NewAccountMeta(solana.TokenProgramID, false, false)
+	inst.AccountMetaSlice[9] = solana.NewAccountMeta(TOKEN_2022_PROGRAM_ID, false, false)
+	inst.AccountMetaSlice[10] = solana.NewAccountMeta(MEMO_PROGRAM_ID, false, false)
+	inst.AccountMetaSlice[11] = solana.NewAccountMeta(inputValueMint, false, false)
+	inst.AccountMetaSlice[12] = solana.NewAccountMeta(outputValueMint, false, false)
 
 	// Add bitmap extension as remaining account if it exists
 	exBitmapAddress, _, err := GetPdaExBitmapAccount(RAYDIUM_CLMM_PROGRAM_ID, p.PoolId)
@@ -359,7 +350,7 @@ func (p *CLMMPool) BuildSwapInstructions(
 		log.Printf("get pda address error: %v", err)
 		return nil, fmt.Errorf("get pda address error: %v", err)
 	}
-	inst.AccountMetaSlice = append(inst.AccountMetaSlice, solana.NewAccountMeta(exBitmapAddress, true, false)) // exTickArrayBitmap (is_writable = true, is_signer = false)
+	inst.AccountMetaSlice[13] = solana.NewAccountMeta(exBitmapAddress, true, false) // exTickArrayBitmap (is_writable = true, is_signer = false)
 
 	// Add tick arrays as remaining accounts
 	remainingAccounts, err := p.GetRemainAccounts(ctx, solClient, inputValueMint.String())
@@ -367,10 +358,9 @@ func (p *CLMMPool) BuildSwapInstructions(
 		log.Printf("GetRemainAccounts error: %v", err)
 		return nil, err
 	}
+	inst.AccountMetaSlice[14] = solana.NewAccountMeta(remainingAccounts[0], true, false)
+	inst.AccountMetaSlice[15] = solana.NewAccountMeta(remainingAccounts[1], true, false)
 
-	for _, tickArray := range remainingAccounts {
-		inst.AccountMetaSlice = append(inst.AccountMetaSlice, solana.NewAccountMeta(tickArray, true, false)) // tickArrays (is_writable = true, is_signer = false)
-	}
 	instrs = append(instrs, &inst)
 
 	return instrs, nil
@@ -720,6 +710,8 @@ func (pool *CLMMPool) GetRemainAccounts(
 
 	exTickArrayBitmapAddress := getPdaTickArrayAddress(RAYDIUM_CLMM_PROGRAM_ID, pool.PoolId, tickAarrayStartIndex)
 	allNeededAccounts = append(allNeededAccounts, exTickArrayBitmapAddress)
-
+	if exTickArrayBitmapAddress.String() == firstTickArray.String() {
+		return nil, errors.New("exTickArrayBitmapAddress is the same as firstTickArray")
+	}
 	return allNeededAccounts, nil
 }

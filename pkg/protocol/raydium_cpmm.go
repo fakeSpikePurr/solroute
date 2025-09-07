@@ -46,22 +46,6 @@ func (p *RaydiumCpmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint str
 		pools = append(pools, pool)
 	}
 
-	// Fetch pools with quoteMint as token0
-	programAccounts, err = p.getCPMMPoolAccountsByTokenPair(ctx, quoteMint, baseMint)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", quoteMint, err)
-	}
-
-	for _, account := range programAccounts {
-		data := account.Account.Data.GetBinary()
-		pool := &raydium.CPMMPool{}
-		if err := pool.Decode(data); err != nil {
-			continue
-		}
-		pool.PoolId = account.Pubkey
-		pools = append(pools, pool)
-	}
-
 	return pools, nil
 }
 

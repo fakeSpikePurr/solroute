@@ -32,10 +32,9 @@ func NewClient(ctx context.Context, endpoint, wsEndpoint, jitoEndpoint string, r
 	}
 	if jitoEndpoint != "" {
 		jitoClient, err := NewJitoClient(ctx, jitoEndpoint)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Jito client: %w", err)
+		if err == nil {
+			c.jitoClient = jitoClient
 		}
-		c.jitoClient = jitoClient
 	}
 	return c, nil
 }

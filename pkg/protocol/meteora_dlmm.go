@@ -39,13 +39,6 @@ func (protocol *MeteoraDlmmProtocol) FetchPoolsByPair(ctx context.Context, baseM
 	}
 	programAccounts = append(programAccounts, baseQuotePools...)
 
-	// Fetch pools with quoteMint as TokenX and baseMint as TokenY
-	quoteBasePools, err := protocol.getMeteoraDlmmPoolAccountsByTokenPair(ctx, quoteMint, baseMint)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch pools with quoteMint as TokenX: %w", err)
-	}
-	programAccounts = append(programAccounts, quoteBasePools...)
-
 	pools := make([]pkg.Pool, 0, len(programAccounts))
 	for _, account := range programAccounts {
 		poolData := &meteora.MeteoraDlmmPool{}

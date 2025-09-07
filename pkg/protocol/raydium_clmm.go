@@ -33,11 +33,6 @@ func (p *RaydiumClmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint str
 		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", baseMint, err)
 	}
 	accounts = append(accounts, programAccounts...)
-	programAccounts, err = p.getCLMMPoolAccountsByTokenPair(ctx, quoteMint, baseMint)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", quoteMint, err)
-	}
-	accounts = append(accounts, programAccounts...)
 
 	res := make([]pkg.Pool, 0)
 	for _, v := range accounts {

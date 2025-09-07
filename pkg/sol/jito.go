@@ -22,7 +22,7 @@ func NewJitoClient(ctx context.Context, endpoint string) (*JitoClient, error) {
 	rpcClient := jitorpc.NewJitoJsonRpcClient(endpoint, "")
 	tipAccount, err := rpcClient.GetRandomTipAccount()
 	if err != nil {
-		log.Fatalf("Failed to get random tip account: %v", err)
+		return nil, fmt.Errorf("failed to get random tip account: %v", err)
 	}
 	tipAccountPublicKey, err := solana.PublicKeyFromBase58(tipAccount.Address)
 	return &JitoClient{

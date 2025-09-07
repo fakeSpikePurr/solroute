@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"log"
 
 	"cosmossdk.io/math"
 	bin "github.com/gagliardetto/binary"
@@ -27,12 +28,13 @@ func (pool *MeteoraDlmmPool) BuildSwapInstructions(
 
 	var userInTokenAccount solana.PublicKey
 	var userOutTokenAccount solana.PublicKey
+	log.Printf("inputMint: %v, pool.TokenXMint: %v,if:%v", inputMint, pool.TokenXMint.String(), inputMint == pool.TokenXMint.String())
 	if inputMint == pool.TokenXMint.String() {
-		userOutTokenAccount = userBaseAccount
-		userInTokenAccount = userQuoteAccount
-	} else {
-		userOutTokenAccount = userQuoteAccount
 		userInTokenAccount = userBaseAccount
+		userOutTokenAccount = userQuoteAccount
+	} else {
+		userInTokenAccount = userQuoteAccount
+		userOutTokenAccount = userBaseAccount
 	}
 
 	instruction := SwapInstruction{
@@ -65,8 +67,8 @@ func (pool *MeteoraDlmmPool) BuildSwapInstructions(
 	}
 	instruction.AccountMetaSlice[2] = solana.NewAccountMeta(pool.reserveX, true, false)
 	instruction.AccountMetaSlice[3] = solana.NewAccountMeta(pool.reserveY, true, false)
-	instruction.AccountMetaSlice[4] = solana.NewAccountMeta(userOutTokenAccount, true, false)
-	instruction.AccountMetaSlice[5] = solana.NewAccountMeta(userInTokenAccount, true, false)
+	instruction.AccountMetaSlice[4] = solana.NewAccountMeta(userInTokenAccount, true, false)
+	instruction.AccountMetaSlice[5] = solana.NewAccountMeta(userOutTokenAccount, true, false)
 	instruction.AccountMetaSlice[6] = solana.NewAccountMeta(pool.TokenXMint, false, false)
 	instruction.AccountMetaSlice[7] = solana.NewAccountMeta(pool.TokenYMint, false, false)
 	instruction.AccountMetaSlice[8] = solana.NewAccountMeta(pool.oracle, true, false)

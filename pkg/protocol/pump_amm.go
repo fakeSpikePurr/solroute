@@ -32,11 +32,6 @@ func (p *PumpAmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint string,
 		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", baseMint, err)
 	}
 	programAccounts = append(programAccounts, data...)
-	data, err = p.getPumpAMMPoolAccountsByTokenPair(ctx, quoteMint, baseMint)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch pools with base token %s: %w", quoteMint, err)
-	}
-	programAccounts = append(programAccounts, data...)
 
 	res := make([]pkg.Pool, 0)
 	for _, v := range programAccounts {
