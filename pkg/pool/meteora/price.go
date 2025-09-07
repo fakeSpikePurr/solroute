@@ -10,7 +10,7 @@ import (
 
 	cosmosmath "cosmossdk.io/math"
 	"github.com/gagliardetto/solana-go"
-	"github.com/yimingWOW/solroute/pkg/sol"
+	"github.com/yimingwow/solroute/pkg/sol"
 	"lukechampine.com/uint128"
 )
 

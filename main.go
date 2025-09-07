@@ -2,23 +2,19 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 
 	"cosmossdk.io/math"
 	"github.com/gagliardetto/solana-go"
-	"github.com/yimingWOW/solroute/config"
-	"github.com/yimingWOW/solroute/pkg/protocol"
-	"github.com/yimingWOW/solroute/pkg/router"
-	"github.com/yimingWOW/solroute/pkg/sol"
-	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/yimingwow/solroute/pkg/protocol"
+	"github.com/yimingwow/solroute/pkg/router"
+	"github.com/yimingwow/solroute/pkg/sol"
 )
 
-func init() {
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-}
-
 var (
+	privateKey = ""
+	rpc        = ""
+	jitoRpc    = ""
 	// Token addresses
 	inTokenAddr  = sol.WSOL
 	outTokenAddr = solana.MustPublicKeyFromBase58("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
@@ -34,19 +30,14 @@ var (
 func main() {
 	log.Printf("🚀🚀🚀parpering to earn...")
 
-	var config config.Config
-	configFile := flag.String("f", "./config/config.json", "the config file")
-	conf.MustLoad(*configFile, &config)
-
-	privateKey := solana.MustPrivateKeyFromBase58(config.PrivateKey)
+	privateKey := solana.MustPrivateKeyFromBase58(privateKey)
 	log.Printf("😈get your public key: %v", privateKey.PublicKey())
 
 	ctx := context.Background()
-	solClient, err := sol.NewClient(ctx, config.RPC, config.WSRPC, config.JitoRPC, 20) // 50 requests per second
+	solClient, err := sol.NewClient(ctx, rpc, jitoRpc, 20) // 50 requests per second
 	if err != nil {
 		log.Fatalf("Failed to create solana client: %v", err)
 	}
-	defer solClient.Close()
 
 	// check balance first
 	inTokenAccount, balance, err := solClient.GetUserTokenBalance(ctx, privateKey.PublicKey(), inTokenAddr)
@@ -86,13 +77,13 @@ func main() {
 	signers := []solana.PrivateKey{}
 	instructions := make([]solana.Instruction, 0)
 
-	// buy
 	amountIn := math.NewInt(defaultAmountIn)
 	bestPool, amountOut, err := router.GetBestPool(ctx, solClient, inTokenAddr.String(), amountIn)
 	if err != nil {
 		log.Fatalf("Failed to get best pool: %v", err)
 	}
 	log.Printf("Selected best pool: %v, amountOut: %v", bestPool.GetID(), amountOut)
+
 	minAmountOut := amountOut.Mul(math.NewInt(int64(10000 - slippageBps))).Quo(math.NewInt(10000))
 	instructionsBuy, err := bestPool.BuildSwapInstructions(ctx, solClient,
 		privateKey.PublicKey(), inTokenAddr.String(), amountIn, minAmountOut, inTokenAccount, outTokenAccount)

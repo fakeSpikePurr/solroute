@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gagliardetto/solana-go"
-	"github.com/yimingWOW/solroute/pkg/sol"
+	"github.com/yimingwow/solroute/pkg/sol"
 )
 
 const (
