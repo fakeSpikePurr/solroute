@@ -92,7 +92,7 @@ func (p *RaydiumCpmmProtocol) getCPMMPoolAccountsByTokenPair(ctx context.Context
 
 // FetchPoolByID retrieves a CPMM pool by its ID
 func (p *RaydiumCpmmProtocol) FetchPoolByID(ctx context.Context, poolID string) (pkg.Pool, error) {
-	account, err := p.SolClient.GetAccountInfo(ctx, solana.MustPublicKeyFromBase58(poolID))
+	account, err := p.SolClient.GetAccountInfoWithOpts(ctx, solana.MustPublicKeyFromBase58(poolID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool account %s: %w", poolID, err)
 	}

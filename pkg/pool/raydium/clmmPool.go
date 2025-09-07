@@ -14,7 +14,6 @@ import (
 	cosmath "cosmossdk.io/math"
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingWOW/solroute/pkg"
 	"github.com/yimingWOW/solroute/pkg/sol"
 	"lukechampine.com/uint128"
@@ -434,12 +433,7 @@ func (pool *CLMMPool) GetTokens() (baseMint, quoteMint string) {
 
 func (pool *CLMMPool) Quote(ctx context.Context, solClient *sol.Client, inputMint string, inputAmount cosmath.Int) (cosmath.Int, error) {
 	// update pool state first
-	results, err := solClient.GetMultipleAccountsWithOpts(ctx,
-		[]solana.PublicKey{pool.ExBitmapAddress},
-		&rpc.GetMultipleAccountsOpts{
-			Commitment: rpc.CommitmentProcessed,
-		},
-	)
+	results, err := solClient.GetMultipleAccountsWithOpts(ctx, []solana.PublicKey{pool.ExBitmapAddress})
 	if err != nil {
 		return cosmath.Int{}, fmt.Errorf("batch request failed: %v", err)
 	}
@@ -451,9 +445,7 @@ func (pool *CLMMPool) Quote(ctx context.Context, solClient *sol.Client, inputMin
 	if err != nil {
 		return cosmath.Int{}, fmt.Errorf("get tick array address error: %v", err)
 	}
-	results, err = solClient.GetMultipleAccountsWithOpts(ctx, tickArrayAddresses, &rpc.GetMultipleAccountsOpts{
-		Commitment: rpc.CommitmentProcessed,
-	})
+	results, err = solClient.GetMultipleAccountsWithOpts(ctx, tickArrayAddresses)
 	if err != nil {
 		log.Printf("batch request failed: %v", err)
 		return cosmath.Int{}, fmt.Errorf("batch request failed: %v", err)

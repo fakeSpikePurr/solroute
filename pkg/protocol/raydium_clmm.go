@@ -43,7 +43,7 @@ func (p *RaydiumClmmProtocol) FetchPoolsByPair(ctx context.Context, baseMint str
 		}
 		layout.PoolId = v.Pubkey
 
-		ammConfigData, err := p.SolClient.GetAccountInfo(ctx, layout.AmmConfig)
+		ammConfigData, err := p.SolClient.GetAccountInfoWithOpts(ctx, layout.AmmConfig)
 		if err != nil {
 			continue
 		}
@@ -106,7 +106,7 @@ func (r *RaydiumClmmProtocol) FetchPoolByID(ctx context.Context, poolId string) 
 	if err != nil {
 		return nil, fmt.Errorf("invalid pool id: %w", err)
 	}
-	account, err := r.SolClient.GetAccountInfo(ctx, poolIdKey)
+	account, err := r.SolClient.GetAccountInfoWithOpts(ctx, poolIdKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool account %s: %w", poolId, err)
 	}

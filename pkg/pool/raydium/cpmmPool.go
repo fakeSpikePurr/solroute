@@ -9,7 +9,6 @@ import (
 	cosmath "cosmossdk.io/math"
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingWOW/solroute/pkg"
 	"github.com/yimingWOW/solroute/pkg/sol"
 )
@@ -203,12 +202,7 @@ func (pool *CPMMPool) Quote(ctx context.Context, solClient *sol.Client, inputMin
 	accounts := make([]solana.PublicKey, 0)
 	accounts = append(accounts, pool.Token0Vault)
 	accounts = append(accounts, pool.Token1Vault)
-	results, err := solClient.GetMultipleAccountsWithOpts(ctx,
-		accounts,
-		&rpc.GetMultipleAccountsOpts{
-			Commitment: rpc.CommitmentProcessed,
-		},
-	)
+	results, err := solClient.GetMultipleAccountsWithOpts(ctx, accounts)
 	if err != nil {
 		return math.NewInt(0), fmt.Errorf("batch request failed: %v", err)
 	}

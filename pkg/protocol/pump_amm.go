@@ -83,7 +83,7 @@ func (p *PumpAmmProtocol) FetchPoolByID(ctx context.Context, poolId string) (pkg
 		return nil, fmt.Errorf("invalid pool ID: %w", err)
 	}
 
-	account, err := p.SolClient.GetAccountInfo(ctx, poolPubkey)
+	account, err := p.SolClient.GetAccountInfoWithOpts(ctx, poolPubkey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool account %s: %w", poolId, err)
 	}

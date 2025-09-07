@@ -90,7 +90,7 @@ func (protocol *MeteoraDlmmProtocol) getMeteoraDlmmPoolAccountsByTokenPair(ctx c
 // FetchPoolByID retrieves a specific Meteora DLMM pool by its ID
 func (protocol *MeteoraDlmmProtocol) FetchPoolByID(ctx context.Context, poolID string) (pkg.Pool, error) {
 	poolData := &meteora.MeteoraDlmmPool{}
-	account, err := protocol.SolClient.GetAccountInfo(ctx, solana.MustPublicKeyFromBase58(poolID))
+	account, err := protocol.SolClient.GetAccountInfoWithOpts(ctx, solana.MustPublicKeyFromBase58(poolID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool account: %w", err)
 	}

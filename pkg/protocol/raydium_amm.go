@@ -90,7 +90,7 @@ func (r *RaydiumAMMProtocol) FetchPoolByID(ctx context.Context, poolID string) (
 		return nil, fmt.Errorf("invalid pool ID: %w", err)
 	}
 
-	account, err := r.SolClient.GetAccountInfo(ctx, poolPubkey)
+	account, err := r.SolClient.GetAccountInfoWithOpts(ctx, poolPubkey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool account %s: %w", poolID, err)
 	}
@@ -133,7 +133,7 @@ func int8ToBuf(value uint8) []byte {
 }
 
 func (p *RaydiumAMMProtocol) processAMMPool(ctx context.Context, layout *raydium.AMMPool) error {
-	marketAccount, err := p.SolClient.GetAccountInfo(ctx, layout.MarketId)
+	marketAccount, err := p.SolClient.GetAccountInfoWithOpts(ctx, layout.MarketId)
 	if err != nil {
 		return fmt.Errorf("failed to get market account: %w", err)
 	}

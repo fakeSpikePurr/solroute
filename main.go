@@ -18,12 +18,13 @@ func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
-const (
+var (
 	// Token addresses
-	usdcTokenAddr = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+	inTokenAddr  = sol.WSOL
+	outTokenAddr = solana.MustPublicKeyFromBase58("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
 
 	// Swap parameters
-	defaultAmountIn = 10000000 // 0.01 sol (9 decimals)
+	defaultAmountIn = int64(10000000) // 0.01 sol (9 decimals)
 	solDecimal      = float64(1e9)
 	slippageBps     = 100 // 1% slippage
 	useJito         = false
@@ -48,60 +49,60 @@ func main() {
 	defer solClient.Close()
 
 	// check balance first
-	wsolTokenAccount, balance, err := solClient.GetUserTokenBalance(ctx, privateKey.PublicKey(), sol.WSOL)
+	inTokenAccount, balance, err := solClient.GetUserTokenBalance(ctx, privateKey.PublicKey(), inTokenAddr)
 	if err != nil && err.Error() != "no token account found" {
 		log.Fatalf("Failed to get user token balance: %v", err)
 	}
 	log.Printf("😈You have %v wsol", balance)
-	if err != nil || balance < defaultAmountIn {
+	if err != nil || balance < uint64(defaultAmountIn) {
 		log.Printf("🧐You don't have enough wsol, covering %f wsol...", float64(defaultAmountIn)/solDecimal)
 		err = solClient.CoverWsol(ctx, privateKey, defaultAmountIn)
 		if err != nil {
 			log.Fatalf("Failed to cover wsol: %v", err)
 		}
 	}
-	tokenAccount, err := solClient.SelectOrCreateSPLTokenAccount(ctx, privateKey, solana.MustPublicKeyFromBase58(usdcTokenAddr))
+	outTokenAccount, err := solClient.SelectOrCreateSPLTokenAccount(ctx, privateKey, outTokenAddr)
 	if err != nil {
 		log.Fatalf("Failed to get user token balance: %v", err)
 	}
-	log.Printf("😈Your token account: %v", tokenAccount.String())
+	log.Printf("😈Your token account: %v", outTokenAccount.String())
 
 	router := router.NewSimpleRouter(
-		// protocol.NewPumpAmm(solClient),
-		// protocol.NewRaydiumAmm(solClient),
-		// protocol.NewRaydiumClmm(solClient),
-		// protocol.NewRaydiumCpmm(solClient),
+		protocol.NewPumpAmm(solClient),
+		protocol.NewRaydiumAmm(solClient),
+		protocol.NewRaydiumClmm(solClient),
+		protocol.NewRaydiumCpmm(solClient),
 		protocol.NewMeteoraDlmm(solClient),
 	)
 
 	// Query available pools
 	log.Printf("⌛️Querying available pools...")
-	err = router.QueryAllPools(ctx, usdcTokenAddr, sol.WSOL.String())
+	err = router.QueryAllPools(ctx, inTokenAddr.String(), outTokenAddr.String())
 	if err != nil {
 		log.Fatalf("Failed to query all pools: %v", err)
 	}
 	log.Printf("👌Found %d pools", len(router.Pools))
 
-	// Find best pool for the swap
+	signers := []solana.PrivateKey{}
+	instructions := make([]solana.Instruction, 0)
+
+	// buy
 	amountIn := math.NewInt(defaultAmountIn)
-	bestPool, amountOut, err := router.GetBestPool(ctx, solClient, sol.WSOL.String(), amountIn)
+	bestPool, amountOut, err := router.GetBestPool(ctx, solClient, inTokenAddr.String(), amountIn)
 	if err != nil {
 		log.Fatalf("Failed to get best pool: %v", err)
 	}
-	log.Printf("Selected best pool: %v", bestPool.GetID())
-	log.Printf("Expected output amount: %v", amountOut)
-
-	// Calculate minimum output amount with slippage
-	minAmountOut := amountOut.Mul(math.NewInt(10000 - slippageBps)).Quo(math.NewInt(10000))
-
-	// Build swap instructions
-	instructions, err := bestPool.BuildSwapInstructions(ctx, solClient,
-		privateKey.PublicKey(), usdcTokenAddr, amountIn, minAmountOut, wsolTokenAccount, tokenAccount)
+	log.Printf("Selected best pool: %v, amountOut: %v", bestPool.GetID(), amountOut)
+	minAmountOut := amountOut.Mul(math.NewInt(int64(10000 - slippageBps))).Quo(math.NewInt(10000))
+	instructionsBuy, err := bestPool.BuildSwapInstructions(ctx, solClient,
+		privateKey.PublicKey(), inTokenAddr.String(), amountIn, minAmountOut, inTokenAccount, outTokenAccount)
 	if err != nil {
 		log.Fatalf("Failed to build swap instructions: %v", err)
 	}
+	signers = append(signers, privateKey)
+	instructions = append(instructions, instructionsBuy...)
 
-	tx, err := solClient.SignTransaction(ctx, []solana.PrivateKey{privateKey}, instructions...)
+	tx, err := solClient.SignTransaction(ctx, signers, instructions...)
 	if err != nil {
 		log.Fatalf("Failed to SendTx: %v", err)
 	}
@@ -112,7 +113,7 @@ func main() {
 		}
 	}
 	if useJito {
-		_, err = solClient.SendTxWithJito(ctx, 1000000, []solana.PrivateKey{privateKey}, tx)
+		_, err = solClient.SendTxWithJito(ctx, 1000000, signers, tx)
 		if err != nil {
 			log.Fatalf("Failed to SendTxWithJito: %v", err)
 		}

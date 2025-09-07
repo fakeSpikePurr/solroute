@@ -406,7 +406,7 @@ func (pool *MeteoraDlmmPool) GetBinArrayForSwap(ctx context.Context, client *sol
 	activeBinArrayPubkeys = append(activeBinArrayPubkeys, negativeOrderActiveBinArrayPubkeys...)
 
 	// Fetch all bin array accounts in batch
-	results, err := client.GetMultipleAccounts(ctx, activeBinArrayPubkeys)
+	results, err := client.GetMultipleAccountsWithOpts(ctx, activeBinArrayPubkeys)
 	if err != nil {
 		return fmt.Errorf("batch request failed: %w", err)
 	}

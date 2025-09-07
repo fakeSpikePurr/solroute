@@ -9,7 +9,6 @@ import (
 	"cosmossdk.io/math"
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/yimingWOW/solroute/pkg"
 	"github.com/yimingWOW/solroute/pkg/anchor"
 	"github.com/yimingWOW/solroute/pkg/sol"
@@ -348,12 +347,7 @@ func (pool *PumpAMMPool) Quote(ctx context.Context, solClient *sol.Client, input
 	accounts := make([]solana.PublicKey, 0)
 	accounts = append(accounts, pool.PoolBaseTokenAccount)
 	accounts = append(accounts, pool.PoolQuoteTokenAccount)
-	results, err := solClient.GetMultipleAccountsWithOpts(ctx,
-		accounts,
-		&rpc.GetMultipleAccountsOpts{
-			Commitment: rpc.CommitmentProcessed,
-		},
-	)
+	results, err := solClient.GetMultipleAccountsWithOpts(ctx, accounts)
 	if err != nil {
 		return math.NewInt(0), fmt.Errorf("batch request failed: %v", err)
 	}
