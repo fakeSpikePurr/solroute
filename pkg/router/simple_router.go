@@ -81,11 +81,7 @@ func (r *SimpleRouter) GetBestPool(ctx context.Context, solClient *sol.Client, t
 			log.Printf("error quoting pool %s: %v", result.pool.GetID(), result.err)
 			continue
 		}
-		// if result.outAmount.GT(maxOut) {
-		// 	maxOut = result.outAmount
-		// 	best = result.pool
-		// }
-		if result.pool.GetID() == "8sLbNZoA1cfnvMJLPfp98ZLAnFSYCFApfJKMbiXNLwxj" {
+		if result.outAmount.GT(maxOut) {
 			maxOut = result.outAmount
 			best = result.pool
 		}
