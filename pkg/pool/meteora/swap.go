@@ -10,7 +10,7 @@ import (
 	"cosmossdk.io/math"
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
-	"github.com/yimingwow/solroute/pkg/sol"
+	"github.com/fakeSpikePurr/solroute/pkg/sol"
 )
 
 // BuildSwapInstructions creates Solana instructions for performing a swap operation

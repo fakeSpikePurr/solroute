@@ -46,7 +46,7 @@ instructions, err := bestPool.BuildSwapInstructions(ctx, solClient.RpcClient,
 ## Installation
 
 ```bash
-go get github.com/yimingwow/solroute
+go get github.com/fakeSpikePurr/solroute
 ```
 
 ## Project Structure
@@ -74,13 +74,9 @@ This section highlights essential utility functions that can help streamline you
 
 ## Contribution
 
-Contributed by [yimingwow](https://github.com/yimingwow) from [Solar](https://www.solar.team/).
+Contributed by [spike](https://github.com/fakeSpikePurr) from [Solar](https://www.solar.team/).
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-### Work in progress
-
-[SeanTong11](https://github.com/SeanTong11/SolRoute) will add Orca's whirpool for SolRoute
 
 ## License
 

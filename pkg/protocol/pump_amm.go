@@ -6,9 +6,9 @@ import (
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/yimingwow/solroute/pkg"
-	"github.com/yimingwow/solroute/pkg/pool/pump"
-	"github.com/yimingwow/solroute/pkg/sol"
+	"github.com/fakeSpikePurr/solroute/pkg"
+	"github.com/fakeSpikePurr/solroute/pkg/pool/pump"
+	"github.com/fakeSpikePurr/solroute/pkg/sol"
 )
 
 type PumpAmmProtocol struct {

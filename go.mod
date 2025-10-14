@@ -1,4 +1,4 @@
-module github.com/yimingwow/solroute
+module github.com/fakeSpikePurr/solroute
 
 go 1.24.0
 
