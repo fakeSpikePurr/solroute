@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"cosmossdk.io/math"
-	"github.com/fakeSpikePurr/solroute/pkg"
-	"github.com/fakeSpikePurr/solroute/pkg/sol"
+	"github.com/solana-zh/solroute/pkg"
+	"github.com/solana-zh/solroute/pkg/sol"
 )
 
 type SimpleRouter struct {

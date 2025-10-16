@@ -46,7 +46,7 @@ instructions, err := bestPool.BuildSwapInstructions(ctx, solClient.RpcClient,
 ## Installation
 
 ```bash
-go get github.com/fakeSpikePurr/solroute
+go get github.com/solana-zh/solroute
 ```
 
 ## Project Structure

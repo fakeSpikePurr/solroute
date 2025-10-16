@@ -9,9 +9,9 @@ import (
 	"cosmossdk.io/math"
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
-	"github.com/fakeSpikePurr/solroute/pkg"
-	"github.com/fakeSpikePurr/solroute/pkg/anchor"
-	"github.com/fakeSpikePurr/solroute/pkg/sol"
+	"github.com/solana-zh/solroute/pkg"
+	"github.com/solana-zh/solroute/pkg/anchor"
+	"github.com/solana-zh/solroute/pkg/sol"
 )
 
 const (

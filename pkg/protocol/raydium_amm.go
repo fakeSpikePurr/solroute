@@ -9,9 +9,9 @@ import (
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/fakeSpikePurr/solroute/pkg"
-	"github.com/fakeSpikePurr/solroute/pkg/pool/raydium"
-	"github.com/fakeSpikePurr/solroute/pkg/sol"
+	"github.com/solana-zh/solroute/pkg"
+	"github.com/solana-zh/solroute/pkg/pool/raydium"
+	"github.com/solana-zh/solroute/pkg/sol"
 )
 
 type RaydiumAMMProtocol struct {

@@ -7,8 +7,8 @@ import (
 	"unsafe"
 
 	"github.com/gagliardetto/solana-go"
-	"github.com/fakeSpikePurr/solroute/pkg"
-	"github.com/fakeSpikePurr/solroute/pkg/sol"
+	"github.com/solana-zh/solroute/pkg"
+	"github.com/solana-zh/solroute/pkg/sol"
 )
 
 // MeteoraDlmmPool represents a Meteora DLMM (Dynamic Liquidity Market Maker) pool
