@@ -74,7 +74,7 @@ This section highlights essential utility functions that can help streamline you
 
 ## Contribution
 
-Contributed by [spike](https://github.com/fakeSpikePurr) from [Solar](https://www.solar.team/).
+Contributed by [spike](https://x.com/0xfakeSpike) from [Solar](https://www.solar.team/).
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
